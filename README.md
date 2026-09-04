@@ -1,126 +1,120 @@
-# 🛡️ PasswordAdmin — Secure Password Manager & Credential Database
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Core-TokenVector_Language-blueviolet?style=for-the-badge&logo=codeforces" alt="TokenVector Language" />
-  <img src="https://img.shields.io/badge/Encryption-AES--256--GCM_Zero--Knowledge-059669?style=for-the-badge&logo=fastapi" alt="Zero-Knowledge" />
-  <img src="https://img.shields.io/badge/Search-TokenVector_O(1)_Index-2563eb?style=for-the-badge" alt="TokenVector Search" />
-  <img src="https://img.shields.io/badge/Interface-Modern_Web_UI_(Light_Mode)-0f172a?style=for-the-badge&logo=html5" alt="Web UI" />
-  <img src="https://img.shields.io/badge/License-MIT-amber?style=for-the-badge" alt="License" />
-</p>
-
-> **PasswordAdmin** là giải pháp quản lý cơ sở dữ liệu mật khẩu và tài khoản an toàn cấp doanh nghiệp (Enterprise-Grade). Ứng dụng sở hữu nhân xử lý mật mã học và cấu trúc dữ liệu tra cứu siêu tốc được viết hoàn toàn bằng ngôn ngữ lập trình **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)**, kết hợp cùng giao diện **Web UI hiện đại** (nền trắng chữ đen, tương phản cao, trực quan).
+# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.0.0</sup>
 
 ---
 
-## ⚡ Điểm Nhấn Công Nghệ: TokenVector Core Engine
+**Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Zero-Knowledge & CSPRNG).**  
+**Tạo và quản lý thông tin đăng nhập với quy trình chuẩn mực — an toàn tuyệt đối, cục bộ hoàn toàn, không phụ thuộc máy chủ trung gian.**
 
-Trái tim của PasswordAdmin được xây dựng và tối ưu hóa dựa trên nền tảng **[TokenVector Language](https://github.com/nguyenhungtran18/TokenVector)**:
-
-* 🚀 **Truy Vấn $O(1)$ Siêu Tốc:** Cấu trúc bảng chỉ mục đảo ngược (Inverted Index) và phân rã Token Vector giúp lọc, định danh ứng dụng và tài khoản ngay lập tức mà không cần quét tuần tự toàn bộ database.
-* 🔒 **Bảo Vệ Bộ Nhớ & An Toàn Bộ Đệm:** TokenVector được thiết kế hướng an toàn bộ nhớ (Memory Safety), ngăn chặn hoàn toàn các lỗ hổng tràn bộ đệm (Buffer Overflow) và rò rỉ con trỏ.
-* 📦 **Biên Dịch Native AOT:** Mã nguồn `.tkv` có thể được biên dịch trực tiếp sang mã máy nhị phân PE (`.exe`) thông qua trình biên dịch `tkvc.exe` độc lập, vận hành không phụ thuộc runtime cồng kềnh.
-
-🔗 *Khám phá và đóng góp cho ngôn ngữ tại:* **[https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)**
+**Local-First & Zero-Knowledge by Design**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác mã hóa, băm mật khẩu và giải mã đều được thực hiện trực tiếp tại chỗ — **không server, không cloud, không lo ngại rò rỉ dữ liệu**.
 
 ---
 
-## ✨ Tính Năng Nổi Bật
-
-### 1. 🗄️ Quản Lý Cơ Sở Dữ Liệu Tài Khoản Toàn Diện (Database Management)
-* **Quy Trình Tạo Key Chuẩn Mực:**
-  * **Bước 1:** Khai báo bắt buộc **Tên Ứng Dụng / Dịch Vụ** (Google, GitHub, Binance, AWS...) và **Tên Tài Khoản / Email / Username**.
-  * **Bước 2:** Tạo hoặc nhập Mật Khẩu bảo mật, phân loại danh mục (Công việc, Cá nhân, Tài chính, Server/Cloud).
-* **Tìm Kiếm Đa Trường Thời Gian Thực:**
-  * Bộ lọc kép linh hoạt: Tìm độc lập hoặc kết hợp đồng thời theo **Tên App** và **Tên User**.
-* **Auto-Purge Clipboard (10 Giây Tự Hủy):**
-  * Khi sao chép mật khẩu, hệ thống tự động xóa sạch clipboard sau 10 giây để triệt tiêu nguy cơ rình rập từ mã độc clipboard hijacker.
-* **Két Sắt Zero-Knowledge (Master Vault):**
-  * Mã hóa đầu cuối bằng thuật toán băm bảo mật SHA-256. Dữ liệu chỉ được mở khóa khi có Master Password.
-* **Sao Lưu & Phục Hồi Dễ Dàng:**
-  * Hỗ trợ Export Database ra tệp JSON dự phòng và Import Database chỉ với 1 thao tác.
-
-### 2. 🎲 Bộ Sinh Mật Khẩu Ngẫu Nhiên CSPRNG "Không Thể Phá"
-* **CSPRNG (Cryptographically Secure Pseudo-Random Number Generator):** Thu thập entropy thực tế từ phần cứng OS thông qua `crypto.getRandomValues`.
-* **Tùy Biến Độ Dài:** Thanh trượt điều chỉnh từ 10 đến 64 ký tự.
-* **Bộ Lọc Ký Tự Thông Minh:** Hỗ trợ kích hoạt chữ hoa, chữ thường, số, ký tự đặc biệt; loại trừ các ký tự dễ gây nhầm lẫn thị giác như `l, 1, I, 0, O`.
-* **Thanh Đo Entropy & Ước Tính Brute-Force:**
-  * Phân tích tức thì số bit Entropy ($E = L \times \log_2(N)$).
-  * Dự báo thời gian bẻ khóa từ *Vài giây* đến *Hàng triệu năm* (Weak ➔ Medium ➔ Strong ➔ Unbreakable).
-
-### 3. 🎨 Giao Diện Web UI Hiện Đại (Modern Light Theme)
-* Thiết kế nền trắng chữ đen (High-Contrast Light Theme) thanh lịch, sạch sẽ và chuyên nghiệp.
-* Sử dụng hệ thống UI components hiện đại:
-  * **DataTable:** Bảng dữ liệu có phân trang, hỗ trợ ẩn/hiện mật khẩu dạng `••••••••`.
-  * **Stat Cards:** Thống kê tổng quan số lượng tài khoản, mật khẩu an toàn, cảnh báo tài khoản cần nâng cấp.
-  * **Toast Notifications:** Thông báo trạng thái thao tác mượt mà, phản hồi ngay lập tức.
+[![GitHub Repo](https://img.shields.io/badge/GitHub-nguyenhungtran18%2FPasswordAdmin-181717?style=flat-square&logo=github)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Core Language](https://img.shields.io/badge/Core_Engine-TokenVector-blueviolet?style=flat-square&logo=codeforces)](https://github.com/nguyenhungtran18/TokenVector)
+[![Architecture](https://img.shields.io/badge/Architecture-Native_AOT_+_Web_UI-0284c7?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Encryption](https://img.shields.io/badge/Security-Zero--Knowledge_SHA--256-059669?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Interface](https://img.shields.io/badge/Theme-Modern_Light_Mode-0f172a?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)
 
 ---
 
-## 🏛️ Kiến Trúc Hệ Thống (Architecture)
+## ⚠️ Lưu Ý Quan Trọng (Security Disclaimer)
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│               PRESENTATION LAYER (Web UI & Desktop View)               │
-│      index.html | Open_PasswordAdmin_Web.bat | ui_desktop.tkv          │
-│   • Light Theme UI Components   • Dual Search (App + User)             │
-│   • 10s Auto-Purge Clipboard    • Realtime Entropy & Crack Estimation  │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-┌───────────────────────────────────────┐ ┌───────────────────────────────┐
-│     TOKENVECTOR ENGINE (.tkv)         │ │      CRYPTO ENGINE (.tkv)     │
-│   • Inverted Index O(1) Search        │ │   • Hardware CSPRNG           │
-│   • Tokenizer & Fast Normalization    │ │   • AES-256-GCM AEAD          │
-│   • Multi-Field Filter (App & User)   │ │   • Zero-Knowledge Hashing    │
-└───────────────────────────────────────┘ └───────────────┬───────────────┘
-                                                          │
-                                                          ▼
-                                          ┌───────────────────────────────┐
-                                          │     VAULT REPOSITORY (.tkv)   │
-                                          │   • JSON / Database Storage   │
-                                          │   • Atomic Disk Persistence   │
-                                          │   • vault.tkvdb Storage       │
-                                          └───────────────────────────────┘
-```
+**Bằng việc sử dụng phần mềm này, bạn hiểu và đồng ý với các nguyên tắc bảo mật Zero-Knowledge sau:**
+
+* **Không có cơ chế "Quên Mật Khẩu":** Mật khẩu chính (**Master Password**) là chìa khóa duy nhất để mã hóa và giải mã dữ liệu của bạn. Không ai — kể cả tác giả hay bất kỳ hệ thống nào — có thể khôi phục lại dữ liệu nếu bạn làm mất Master Password.
+* **Tự Chủ Quyền Riêng Tư (Full Sovereignty):** Toàn bộ cơ sở dữ liệu được lưu trữ trực tiếp trên máy cục bộ của bạn (`vault.tkvdb` hoặc tệp sao lưu JSON do bạn quản lý).
+* **Phần mềm được cung cấp nguyên trạng ("AS IS"):** Vui lòng lưu trữ Master Password và tạo bản sao lưu dữ liệu thường xuyên.
 
 ---
 
-## 📂 Cấu Trúc Thư Mục
+## 🚀 Trụ Cột Cốt Lõi: TokenVector Core Engine
 
+Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm tốc độ cao của **PasswordAdmin** được xây dựng bằng ngôn ngữ lập trình **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)**:
+
+* ⚡ **Chỉ Mục Đảo Ngược $O(1)$ (Inverted Index Search):** Phân rã từ khóa (Tokenization) theo tên ứng dụng và tên người dùng, cho phép truy vấn bản ghi tức thời trên tập dữ liệu lớn mà không cần quét tuần tự tuyến tính $O(N)$.
+* 🛡️ **An Toàn Bộ Nhớ (Memory Safety):** TokenVector triệt tiêu tận gốc các nguy cơ tràn bộ đệm (Buffer Overflow), rò rỉ con trỏ và lỗi giải phóng bộ nhớ giả mạo.
+* 📦 **Biên Dịch AOT Native Độc Lập:** Mã nguồn `.tkv` được biên dịch AOT thông qua `tkvc.exe` thành binary PE native (`PasswordAdmin.exe`) 30 KB siêu nhẹ, khởi động ngay lập tức mà không cần cài đặt môi trường cồng kềnh.
+
+🔗 **Tìm hiểu thêm về ngôn ngữ TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
+
+---
+
+## 🎯 Nguyên Tắc Vận Hành (Core Principles)
+
+- **Quy Trình Khai Báo Nghiêm Ngặt (Mandatory Pre-Declaration):** Người dùng bắt buộc phải khai báo (1) Tên Ứng dụng/Dịch vụ và (2) Tên Người dùng/Email trước khi tiến hành tạo hoặc lưu mật khẩu.
+- **Bảo Mật Bộ Đệm Tự Hủy (Auto-Purge Clipboard 10s):** Mật khẩu sao chép vào bộ nhớ tạm (Clipboard) sẽ tự động bị xóa sạch sau 10 giây để chống lại các mã độc theo dõi clipboard (Clipboard Hijackers).
+- **CSPRNG Phần Cứng (True Random Generation):** Mật khẩu được sinh ngẫu nhiên dựa trên bộ tạo số ngẫu nhiên giả mật mã học với entropy từ nhân phần cứng OS (`crypto.getRandomValues`).
+- **Tìm Kiếm Kép Đa Trường (Dual-Field Realtime Search):** Tra cứu độc lập hoặc kết hợp đồng thời theo Tên App và Tên User thời gian thực.
+- **Giao Diện Kép Linh Hoạt (Dual-Interface):** Vừa hỗ trợ giao diện Web UI hiện đại (nền trắng chữ đen, tương phản cao, dùng ngay trên trình duyệt), vừa hỗ trợ Native CLI cho môi trường dòng lệnh/terminal.
+
+---
+
+## 💎 Những Điều Bạn Có Thể Làm (What You Can Do)
+
+1. **Tạo Mật Khẩu Chuẩn Quy Trình:** Nhập thông tin App & User trước, sau đó bấm tạo mật khẩu ngẫu nhiên CSPRNG với 1 click.
+2. **Tùy Biến Độ Dài & Độ Phức Tạp:** Điều chỉnh độ dài linh hoạt (10 đến 64 ký tự), bật/tắt ký tự đặc biệt, chữ số, loại bỏ ký tự dễ nhầm lẫn (`l`, `1`, `I`, `0`, `O`).
+3. **Đo Lường Entropy Thời Gian Thực:** Thước đo Entropy toán học ($E = L \times \log_2(N)$) và ước tính thời gian Brute-force bẻ khóa (Weak ➔ Medium ➔ Strong ➔ Unbreakable).
+4. **Quản Lý Cơ Sở Dữ Liệu Dạng Bảng (CRUD):** Xem danh sách, ẩn/hiện mật khẩu dạng `••••••••`, chỉnh sửa và xóa bản ghi với giao diện DataTable trực quan.
+5. **Sao Lưu & Di Chuyển Dữ Liệu (Backup & Restore):** Xuất toàn bộ cơ sở dữ liệu ra định dạng JSON hoặc nạp tệp sao lưu để khôi phục chỉ trong 1 thao tác.
+6. **Bảo Vệ Bằng Két Sắt Master Vault:** Khóa toàn bộ ứng dụng khi rời máy tính, giải mã lại tức thì bằng Master Password.
+
+---
+
+## 🔬 Nền Tảng Kỹ Thuật (Technical Foundation)
+
+### So sánh & Thông số Kỹ thuật:
+
+| Thành phần | Đặc tả kỹ thuật | Mục đích & Lợi ích |
+|:---|:---|:---|
+| **Core Language** | **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)** (`.tkv`) | An toàn bộ nhớ, cú pháp tinh gọn, hiệu năng tiệm cận C/C++ |
+| **Search Engine** | Inverted Index TokenVector ($O(1)$) | Tìm kiếm siêu tốc theo Tên App và Tên User |
+| **CSPRNG Engine** | OS Hardware Entropy Pool | Sinh mật khẩu có độ hỗn loạn tối đa, không thể đoán trước |
+| **Vault Encryption** | PBKDF2 / SHA-256 Digest | Zero-Knowledge authentication & bảo vệ két sắt |
+| **Web Presentation** | HTML5 + Tailwind CSS + Lucide Icons | Nền trắng chữ đen (Light Mode), tương phản cao, không phụ thuộc server |
+| **Auto-Purge Timer** | 10.000 ms (10 giây) | Xóa sạch clipboard tự động sau khi copy |
+
+### Bảng Ký Tự Tiêu Chuẩn (Google & Enterprise Compatible):
 ```text
-PasswordAdmin/
-├── index.html                   # Giao diện Web UI hiện đại (Nền trắng chữ đen, đầy đủ UI Components)
-├── Open_PasswordAdmin_Web.bat   # Script 1-click mở nhanh ứng dụng trên trình duyệt
-├── PasswordAdmin.tkv            # File nguồn chính ngôn ngữ TokenVector
-├── crypto_engine.tkv            # Module mật mã học & CSPRNG TokenVector
-├── token_vector_engine.tkv      # Module chỉ mục & tìm kiếm $O(1)$ TokenVector
-├── vault_repository.tkv         # Module lưu trữ & quản lý cơ sở dữ liệu két sắt
-├── models.tkv                   # Định nghĩa thực thể dữ liệu (Credential, Category, Vault)
-├── ui_desktop.tkv               # Engine giao diện dòng lệnh & desktop view
-├── PasswordAdmin.exe            # Binary AOT đã được biên dịch sẵn
-└── README.md                    # Tài liệu hướng dẫn dự án
+abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?
 ```
+
+### Tiêu Chuẩn Đánh Giá Mật Khẩu (Password Strength Scale):
+- **Cực Mạnh (Unbreakable):** $\ge 85\text{ bits}$ Entropy — Kháng tấn công siêu máy tính trong hàng triệu năm.
+- **Tốt (Safe):** $65 - 84\text{ bits}$ Entropy — An toàn trước mọi cuộc tấn công phân tán trong nhiều thế kỷ.
+- **Trung Bình:** $40 - 64\text{ bits}$ Entropy — Khuyến cáo nâng cấp độ dài và thêm ký tự đặc biệt.
+- **Yếu (Danger):** $< 40\text{ bits}$ Entropy — Có thể bị crack trong vài giây hoặc vài phút.
 
 ---
 
-## 🚀 Hướng Dẫn Khởi Chạy & Sử Dụng
+## 💻 Hướng Dẫn Sử Dụng (Quick Usage)
 
-### Cách 1: Khởi Chạy Giao Diện Web UI (Khuyến nghị)
-1. **Click đúp** vào file `Open_PasswordAdmin_Web.bat` hoặc mở trực tiếp `index.html` trong bất kỳ trình duyệt nào (Chrome, Edge, Firefox).
-2. Nhập **Master Password** để mở khóa két sắt bảo mật.
-3. Bấm **"Tạo Key Mới"**:
-   - Nhập **Tên App / Dịch vụ** và **Tên User**.
-   - Bấm **"Tạo Ngẫu Nhiên (CSPRNG)"** để sinh mật khẩu siêu an toàn.
-   - Bấm **"Lưu Vào Database"**.
-4. Sử dụng 2 ô tìm kiếm để tra cứu nhanh thông tin khi cần.
-5. Bấm nút **Copy**: Mật khẩu sẽ tự động bị xóa khỏi bộ nhớ đệm sau 10 giây.
-
-### Cách 2: Vận Hành Bằng TokenVector CLI & Biên Dịch Native
-Nếu bạn đã cài đặt bộ công cụ phát triển **[TokenVector SDK](https://github.com/nguyenhungtran18/TokenVector)**:
+### 1. Khởi Chạy Web UI (Khuyên dùng)
+Ứng dụng Web UI hoàn toàn độc lập (Self-Contained SPA), không cần cấu hình web server:
 
 ```bash
-# Biên dịch AOT ra binary thực thi native độc lập:
+# Cách 1: Click đúp vào file launcher trên Windows Explorer:
+Open_PasswordAdmin_Web.bat
+
+# Cách 2: Mở trực tiếp file index.html bằng trình duyệt (Chrome, Edge, Firefox, Brave):
+start index.html
+```
+
+* **Giao diện:** Nền trắng chữ đen thanh lịch, sắc nét, trực quan.
+* **Sử dụng:**
+  1. Nhập Master Password để mở khóa két sắt.
+  2. Bấm **"Tạo Key Mới"** ➔ Nhập Tên App & Tên User ➔ Bấm **"Tạo Ngẫu Nhiên (CSPRNG)"** ➔ Bấm **"Lưu Vào Database"**.
+  3. Dùng 2 ô tìm kiếm để lọc tài khoản bất cứ lúc nào.
+  4. Bấm biểu tượng **Copy** ➔ Mật khẩu được sao chép và sẽ tự động biến mất khỏi clipboard sau 10 giây.
+
+---
+
+### 2. Khởi Chạy & Biên Dịch Native CLI Bằng TokenVector
+
+Dành cho nhà phát triển muốn chạy CLI hoặc biên dịch lại bằng công cụ phát triển **[TokenVector SDK](https://github.com/nguyenhungtran18/TokenVector)**:
+
+```bash
+# Biên dịch AOT từ mã nguồn TokenVector ra tệp nhị phân native:
 tkvc.exe PasswordAdmin.tkv -o PasswordAdmin.exe
 
 # Chạy ứng dụng console:
@@ -129,16 +123,64 @@ tkvc.exe PasswordAdmin.tkv -o PasswordAdmin.exe
 
 ---
 
-## 🔐 Cam Kết Bảo Mật (Security Model)
+## 📁 Cấu Trúc Dự Án (Project Structure)
 
-* **Zero-Knowledge Architecture:** Mật khẩu chính và các khóa bảo mật của bạn không bao giờ được gửi lên bất kỳ máy chủ bên thứ ba nào.
-* **Không Lưu Plaintext:** Dữ liệu mật khẩu luôn được kiểm soát trong vùng nhớ an toàn hoặc mã hóa trước khi lưu đĩa.
-* **Bộ Đệm Tự Hủy:** Ngăn ngừa tấn công đọc lén Clipboard sau khi người dùng thực hiện đăng nhập.
+```text
+PasswordAdmin/
+├── index.html                   # Ứng dụng Web UI (Light Theme, đầy đủ UI Components)
+├── Open_PasswordAdmin_Web.bat   # Phím tắt 1-click mở ứng dụng tức thì trên Windows
+├── PasswordAdmin.tkv            # Tệp điều phối chính ngôn ngữ TokenVector
+├── crypto_engine.tkv            # Module mật mã học & CSPRNG TokenVector
+├── token_vector_engine.tkv      # Module chỉ mục & tìm kiếm O(1) TokenVector
+├── vault_repository.tkv         # Module lưu trữ & quản lý database két sắt
+├── models.tkv                   # Định nghĩa thực thể dữ liệu (Credential, Category, Vault)
+├── ui_desktop.tkv               # Engine giao diện desktop & terminal CLI
+├── PasswordAdmin.exe            # Binary AOT 30 KB biên dịch sẵn từ TokenVector
+├── vault.tkvdb                  # Tệp cơ sở dữ liệu két sắt cục bộ
+├── LICENSE                      # Giấy phép MIT License
+└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật
+```
 
 ---
 
-## 👨‍💻 Tác Giả & Bản Quyền
+## 🛡️ Yêu Cầu Bảo Mật Khuyến Nghị (Security Best Practices)
 
+### Quy Tắc Đặt Master Password:
+- Tối thiểu 12 đến 16 ký tự trở lên.
+- Kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
+- Tuyệt đối không chia sẻ hoặc lưu Master Password ở dạng văn bản thuần (plaintext) trên máy tính.
+
+```text
+✅ Ví dụ mật khẩu an toàn:
+   • "Tr0ngV3ct0r#Vault@2026!Sec"
+   • "K3tSat#BaoMat$DoiThuong&99"
+
+❌ Các mật khẩu cần tránh:
+   • "12345678", "password", "admin"
+   • Tên cá nhân hoặc ngày sinh nhật dễ đoán
+```
+
+---
+
+## 📜 Lịch Sử Phiên Bản (Version History)
+
+| Phiên bản | Công nghệ Core | Trạng thái | Điểm cải tiến chính |
+|:---|:---|:---|:---|
+| **v1.0.0** | TokenVector CLI | 📦 Legacy | Bản dựng ban đầu chạy trên console terminal với AOT compilation. |
+| **v2.0.0** | **TokenVector + Web UI** | 🚀 **Hiện tại (Current)** | Thêm Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
+
+---
+
+## 📄 Giấy Phép (License)
+
+Dự án được phân phối dưới giấy phép **[MIT License](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)**.
+
+Bản quyền (©) 2026 thuộc về **nguyenhungtran18**.
+
+---
+
+## 🤝 Đóng Góp & Hỗ Trợ (Support & Ecosystem)
+
+* **Báo cáo lỗi & Góp ý tính năng:** [GitHub Issues](https://github.com/nguyenhungtran18/PasswordAdmin/issues)
+* **Hệ sinh thái ngôn ngữ TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
 * **Tác giả:** [nguyenhungtran18](https://github.com/nguyenhungtran18)
-* **Hệ sinh thái TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
-* **Giấy phép:** [MIT License](LICENSE)

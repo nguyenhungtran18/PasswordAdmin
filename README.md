@@ -92,7 +92,7 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
 Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin.zip (v2.0.0)](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v2.0.0/PasswordAdmin.zip)**
+📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin.zip (v2.0.0)]([https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v2.0.0/PasswordAdmin.zip](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v2.0.0/PasswordAdmin.zip))**
 
 ---
 

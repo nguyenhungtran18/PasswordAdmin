@@ -1,0 +1,142 @@
+# -*- coding: utf-8 -*-
+"""
+TokenVector Password Manager - Vault Repository
+Manages Zero-Knowledge encrypted storage, atomic file persistence,
+and verification canary on local disk.
+"""
+
+import os
+import json
+import time
+import base64
+from typing import List, Dict, Optional, Tuple
+
+from models import VaultItem, VaultMetadata
+from crypto_engine import CryptoEngine
+
+_CANARY_TEXT = "TOKENVECTOR_VAULT_CANARY_VERIFIED_V1"
+
+
+class VaultRepository:
+    """Repository handling persistence of encrypted vault records."""
+
+    def __init__(self, file_path: "str" = "vault.tkvdb"):
+        self.file_path = file_path
+
+    def exists(self) -> bool:
+        """Checks whether the encrypted vault file exists on disk."""
+        return os.path.exists(self.file_path)
+
+    def initialize_vault(
+        self,
+        master_password: "str",
+        initial_items: Optional[List[VaultItem]] = None
+    ) -> bytes:
+        """
+        Creates a new encrypted vault file with fresh salt and verification canary.
+        Returns the derived Master Key.
+        """
+        salt = CryptoEngine.generate_salt(32)
+        key, kdf_algo = CryptoEngine.derive_key(master_password, salt)
+
+        # Encrypt the verification canary token
+        canary_c, canary_n, canary_t = CryptoEngine.encrypt_payload(_CANARY_TEXT, key)
+
+        metadata = VaultMetadata(
+            version=1,
+            kdf_algorithm=kdf_algo,
+            salt_b64=base64.b64encode(salt).decode("ascii"),
+            iterations=600000,
+            created_at=int(time.time()),
+        )
+
+        items_data = [item.to_dict() for item in (initial_items or [])]
+
+        vault_bundle = {
+            "metadata": metadata.to_dict(),
+            "canary": {
+                "ciphertext": canary_c,
+                "nonce": canary_n,
+                "tag": canary_t,
+            },
+            "records": items_data,
+        }
+
+        self._atomic_save(vault_bundle)
+        return key
+
+    def unlock_vault(self, master_password: "str") -> Tuple[Optional[bytes], List[VaultItem], "str"]:
+        """
+        Derives key and verifies master password against canary token.
+        Returns: (derived_key_or_None, list_of_vault_items, status_message)
+        """
+        if not self.exists():
+            return None, [], "Vault file not found."
+
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            meta_dict = data.get("metadata", {})
+            metadata = VaultMetadata.from_dict(meta_dict)
+            salt = base64.b64decode(metadata.salt_b64)
+
+            # Derive key using stored salt
+            key, _ = CryptoEngine.derive_key(master_password, salt)
+
+            # Verify canary token
+            canary = data.get("canary", {})
+            decrypted_canary = CryptoEngine.decrypt_payload(
+                canary.get("ciphertext", ""),
+                canary.get("nonce", ""),
+                canary.get("tag", ""),
+                key
+            )
+
+            if decrypted_canary != _CANARY_TEXT:
+                return None, [], "Incorrect Master Password. Access Denied."
+
+            # Load records
+            raw_records = data.get("records", [])
+            items = [VaultItem.from_dict(r) for r in raw_records]
+
+            return key, items, "UNLOCKED_SUCCESS"
+        except Exception as ex:
+            return None, [], f"Decryption/Vault format error: {str(ex)}"
+
+    def save_vault(self, items: List[VaultItem]) -> bool:
+        """Updates stored records while preserving cryptographic headers."""
+        if not self.exists():
+            return False
+
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            data["records"] = [item.to_dict() for item in items]
+            self._atomic_save(data)
+            return True
+        except Exception:
+            return False
+
+    def _atomic_save(self, bundle_dict: Dict[str, object]) -> None:
+        """Writes atomically via temp file to eliminate data corruption risk."""
+        temp_file = f"{self.file_path}.tmp"
+        json_content = json.dumps(bundle_dict, indent=2, ensure_ascii=False)
+
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(json_content)
+            f.flush()
+            os.fsync(f.fileno())
+
+        # Atomically replace target file
+        if os.path.exists(self.file_path):
+            backup_file = f"{self.file_path}.bak"
+            try:
+                if os.path.exists(backup_file):
+                    os.remove(backup_file)
+                os.rename(self.file_path, backup_file)
+            except Exception:
+                pass
+
+        os.replace(temp_file, self.file_path)

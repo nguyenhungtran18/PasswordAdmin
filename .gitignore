@@ -1,0 +1,6 @@
+# Temporary & Intermediate build artifacts
+*.il
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

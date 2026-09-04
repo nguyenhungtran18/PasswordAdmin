@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+"""
+TokenVector Password Manager - Data Models
+Defines immutable/unboxed data structures for vault records and token index.
+"""
+
+from typing import List, Dict, Set, Optional
+
+
+class VaultItem:
+    """Represents a single secure credential item in the vault."""
+    id: "str"
+    service: "str"
+    username: "str"
+    ciphertext: "str"      # Base64 encoded AES-256-GCM ciphertext
+    nonce: "str"           # Base64 encoded 96-bit GCM Nonce / IV
+    tag: "str"             # Base64 encoded 128-bit Authentication Tag
+    category: "str"        # Web, App, Server, API Key, etc.
+    strength_score: "i32"  # 0 to 4 (0: Very Weak, 4: Unbreakable)
+    entropy_bits: "f64"    # Calculated Shannon/Key entropy
+    created_at: "i64"
+    updated_at: "i64"
+
+    def __init__(
+        self,
+        id: "str",
+        service: "str",
+        username: "str",
+        ciphertext: "str",
+        nonce: "str",
+        tag: "str",
+        category: "str" = "General",
+        strength_score: "i32" = 4,
+        entropy_bits: "f64" = 128.0,
+        created_at: "i64" = 0,
+        updated_at: "i64" = 0,
+    ):
+        self.id = id
+        self.service = service
+        self.username = username
+        self.ciphertext = ciphertext
+        self.nonce = nonce
+        self.tag = tag
+        self.category = category
+        self.strength_score = strength_score
+        self.entropy_bits = entropy_bits
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "id": self.id,
+            "service": self.service,
+            "username": self.username,
+            "ciphertext": self.ciphertext,
+            "nonce": self.nonce,
+            "tag": self.tag,
+            "category": self.category,
+            "strength_score": self.strength_score,
+            "entropy_bits": self.entropy_bits,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, object]) -> "VaultItem":
+        return VaultItem(
+            id=str(data.get("id", "")),
+            service=str(data.get("service", "")),
+            username=str(data.get("username", "")),
+            ciphertext=str(data.get("ciphertext", "")),
+            nonce=str(data.get("nonce", "")),
+            tag=str(data.get("tag", "")),
+            category=str(data.get("category", "General")),
+            strength_score=int(data.get("strength_score", 0)),
+            entropy_bits=float(data.get("entropy_bits", 0.0)),
+            created_at=int(data.get("created_at", 0)),
+            updated_at=int(data.get("updated_at", 0)),
+        )
+
+
+class VaultMetadata:
+    """Header and cryptographic parameters for the encrypted vault file."""
+    version: "i32"
+    kdf_algorithm: "str"    # "Argon2id" or "PBKDF2-HMAC-SHA256"
+    salt_b64: "str"         # Cryptographic Salt
+    iterations: "i32"       # KDF iterations or memory cost
+    memory_kib: "i32"       # Memory hardness in KiB (for Argon2)
+    parallelism: "i32"      # Parallelism lanes
+    created_at: "i64"
+
+    def __init__(
+        self,
+        version: "i32" = 1,
+        kdf_algorithm: "str" = "Argon2id",
+        salt_b64: "str" = "",
+        iterations: "i32" = 600000,
+        memory_kib: "i32" = 65536,
+        parallelism: "i32" = 4,
+        created_at: "i64" = 0,
+    ):
+        self.version = version
+        self.kdf_algorithm = kdf_algorithm
+        self.salt_b64 = salt_b64
+        self.iterations = iterations
+        self.memory_kib = memory_kib
+        self.parallelism = parallelism
+        self.created_at = created_at
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "version": self.version,
+            "kdf_algorithm": self.kdf_algorithm,
+            "salt_b64": self.salt_b64,
+            "iterations": self.iterations,
+            "memory_kib": self.memory_kib,
+            "parallelism": self.parallelism,
+            "created_at": self.created_at,
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, object]) -> "VaultMetadata":
+        return VaultMetadata(
+            version=int(data.get("version", 1)),
+            kdf_algorithm=str(data.get("kdf_algorithm", "Argon2id")),
+            salt_b64=str(data.get("salt_b64", "")),
+            iterations=int(data.get("iterations", 600000)),
+            memory_kib=int(data.get("memory_kib", 65536)),
+            parallelism=int(data.get("parallelism", 4)),
+            created_at=int(data.get("created_at", 0)),
+        )

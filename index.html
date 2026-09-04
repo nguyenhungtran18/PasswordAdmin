@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenVector PasswordAdmin - Quản Lý Khóa & Mật Khẩu</title>
+  <!-- Tailwind CSS & Font Inter -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            border: '#e2e8f0',
+            background: '#f8fafc',
+            foreground: '#0f172a',
+            muted: '#f1f5f9',
+            'muted-foreground': '#64748b',
+            card: '#ffffff',
+            primary: {
+              DEFAULT: '#2563eb',
+              foreground: '#ffffff',
+              hover: '#1d4ed8'
+            },
+            accent: {
+              DEFAULT: '#4f46e5',
+              foreground: '#ffffff'
+            }
+          },
+          animation: {
+            'shimmer': 'shimmer 2.5s linear infinite',
+          },
+          keyframes: {
+            shimmer: {
+              from: { backgroundPosition: '0 0' },
+              to: { backgroundPosition: '-200% 0' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+    .glass-panel {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .shimmer-btn {
+      background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased custom-scrollbar">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- Master Password Lock Screen Modal -->
+  <div id="lock-modal" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl border border-slate-200 text-center space-y-6">
+      <div class="inline-flex p-4 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+        <i data-lucide="shield-check" class="w-10 h-10"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Két Sắt Mật Khẩu (Vault)</h2>
+        <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+          Nhập Master Password để giải mã cơ sở dữ liệu (Zero-Knowledge SHA-256).
+        </p>
+      </div>
+
+      <form id="vault-auth-form" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Master Password</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="master-password-input" 
+              class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-mono"
+              placeholder="Nhập mật khẩu chính..."
+              required
+              autofocus
+            />
+            <button 
+              type="button" 
+              onclick="togglePasswordVisibility('master-password-input', this)"
+              class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+        >
+          <i data-lucide="unlock" class="w-4 h-4"></i>
+          <span>Mở Khóa Cơ Sở Dữ Liệu</span>
+        </button>
+      </form>
+      <div class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-600"></i>
+        <span>Nếu dùng lần đầu, mật khẩu bạn nhập sẽ trở thành Master Key.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Dashboard -->
+  <div id="app-container" class="min-h-screen flex flex-col hidden">
+    <!-- Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-extrabold text-slate-900 tracking-tight">PasswordAdmin</h1>
+              <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">v2.0 Web</span>
+            </div>
+            <p class="text-[11px] text-slate-500 hidden sm:block">Quản lý cơ sở dữ liệu tài khoản & Khóa bảo mật</p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2.5">
+          <button 
+            onclick="openCreateModal()" 
+            class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tạo Key Mới</span>
+          </button>
+
+          <button 
+            onclick="exportDatabase()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all" 
+            title="Xuất Database JSON"
+          >
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+
+          <button 
+            onclick="document.getElementById('import-file-input').click()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all" 
+            title="Nhập Database JSON"
+          >
+            <i data-lucide="upload" class="w-4 h-4"></i>
+          </button>
+          <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importDatabase(event)" />
+
+          <button 
+            onclick="lockVault()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all" 
+            title="Khóa Két Sắt"
+          >
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
+      
+      <!-- Metrics Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Stat 1 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500">Tổng Tài Khoản / Key</p>
+            <h3 id="stat-total" class="text-2xl font-extrabold mt-1 text-slate-900">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
+            <i data-lucide="key" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 2 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500">Mật Khẩu Cực Mạnh</p>
+            <h3 id="stat-strong" class="text-2xl font-extrabold mt-1 text-emerald-600">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 3 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500">Cần Nâng Cấp (Yếu)</p>
+            <h3 id="stat-weak" class="text-2xl font-extrabold mt-1 text-amber-600">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-600">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 4 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500">Clipboard Bảo Mật</p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="text-xs font-mono font-bold text-emerald-600">Auto-Purge</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono border border-slate-200">10s</span>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-purple-50 border border-purple-100 text-purple-600">
+            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database Control & Search Toolbar -->
+      <div class="glass-panel p-5 rounded-2xl border border-slate-200 space-y-4">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>Cơ Sở Dữ Liệu Mật Khẩu</span>
+              <span id="records-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-bold border border-slate-200">0 bản ghi</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Tìm kiếm đa trường theo Tên Ứng Dụng (App) và Tên Người Dùng (User)</p>
+          </div>
+
+          <!-- Dual Field Search Controls -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <!-- Search App -->
+            <div class="relative flex-1 sm:w-56">
+              <i data-lucide="layout-grid" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="search-app" 
+                placeholder="Tìm theo Tên App..." 
+                oninput="handleSearch()"
+                class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+
+            <!-- Search User -->
+            <div class="relative flex-1 sm:w-56">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="search-user" 
+                placeholder="Tìm theo Tên User..." 
+                oninput="handleSearch()"
+                class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+
+            <!-- Reset Filter -->
+            <button 
+              onclick="resetSearch()" 
+              class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs text-slate-700 hover:text-slate-900 font-semibold transition-all shrink-0"
+              title="Xóa bộ lọc"
+            >
+              Làm mới
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced DataTable View -->
+      <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold tracking-wider text-[11px] select-none">
+                <th class="py-3.5 px-4">Ứng Dụng / Dịch Vụ</th>
+                <th class="py-3.5 px-4">Tên User / Email</th>
+                <th class="py-3.5 px-4">Mật Khẩu (Key)</th>
+                <th class="py-3.5 px-4">Độ An Toàn</th>
+                <th class="py-3.5 px-4">Phân Loại</th>
+                <th class="py-3.5 px-4 text-right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="credential-table-body" class="divide-y divide-slate-200 bg-white">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden py-16 px-4 text-center space-y-3 bg-white">
+          <div class="inline-flex p-4 rounded-full bg-slate-100 border border-slate-200 text-slate-400">
+            <i data-lucide="search-x" class="w-8 h-8"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-900">Không tìm thấy bản ghi nào</h4>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">
+            Không có thông tin khớp với tiêu chí tìm kiếm hoặc cơ sở dữ liệu đang trống. Hãy nhấn "Tạo Key Mới" để bắt đầu!
+          </p>
+          <button 
+            onclick="openCreateModal()" 
+            class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Thêm Bản Ghi Mới</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Tạo / Chỉnh sửa Key (App + User trước, Key sau) -->
+  <div id="credential-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-title" class="text-lg font-bold text-slate-900">Tạo Key & Mật Khẩu Mới</h3>
+            <p class="text-[11px] text-slate-500">Bước 1: Khai báo App & User ➔ Bước 2: Tạo Key</p>
+          </div>
+        </div>
+        <button onclick="closeCredentialModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Credential Form -->
+      <form id="credential-form" onsubmit="saveCredential(event)" class="space-y-4">
+        <input type="hidden" id="entry-id" value="" />
+
+        <!-- GIAI ĐOẠN 1: KHAI BÁO THÔNG TIN BẮT BUỘC (APP + USER) -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5">
+          <div class="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+            <span class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[10px]">1</span>
+            <span>Thông Tin Tài Khoản Bắt Buộc</span>
+          </div>
+
+          <!-- Trường 1: Tên App -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">
+              Tên Ứng Dụng / Dịch Vụ <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <i data-lucide="globe" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="entry-app" 
+                required 
+                placeholder="vd: Google, GitHub, Binance, AWS, Facebook..." 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+          </div>
+
+          <!-- Trường 2: Tên User -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">
+              Tên Người Dùng / Email / Username <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="entry-user" 
+                required 
+                placeholder="vd: admin@gmail.com, satoshi_nakamoto, dev_ops..." 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+          </div>
+
+          <!-- Category Selection -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Phân Loại Dịch Vụ</label>
+            <select 
+              id="entry-category" 
+              class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+            >
+              <option value="Công việc">💼 Công việc / Doanh nghiệp</option>
+              <option value="Cá nhân">👤 Cá nhân / Email</option>
+              <option value="Tài chính">💰 Tài chính / Crypto / Ngân hàng</option>
+              <option value="Mạng xã hội">🌐 Mạng xã hội / Giải trí</option>
+              <option value="Server / Cloud">☁️ Server / Cloud / Infrastructure</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- GIAI ĐOẠN 2: TẠO VÀ CẤU HÌNH KEY (PASSWORD GENERATOR / INPUT) -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
+              <span class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px]">2</span>
+              <span>Tạo Mật Khẩu (Key)</span>
+            </div>
+
+            <button 
+              type="button" 
+              onclick="generateCSPRNGPassword()" 
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-200 transition-all"
+            >
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Tạo Ngẫu Nhiên (CSPRNG)</span>
+            </button>
+          </div>
+
+          <!-- Password Field -->
+          <div class="relative">
+            <input 
+              type="text" 
+              id="entry-password" 
+              required 
+              placeholder="Nhập hoặc tạo mật khẩu an toàn..." 
+              oninput="evaluatePasswordStrength(this.value)"
+              class="w-full pl-3 pr-10 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            />
+            <button 
+              type="button" 
+              onclick="copyQuickPassword(document.getElementById('entry-password').value)" 
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
+              title="Sao chép nhanh"
+            >
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Strength Bar & Entropy -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-500">Độ bảo mật:</span>
+              <span id="strength-label" class="font-bold text-slate-500">Chưa nhập</span>
+            </div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div id="strength-bar" class="h-full w-0 transition-all duration-300 bg-slate-400 rounded-full"></div>
+            </div>
+            <div class="text-[10px] text-slate-500 flex justify-between pt-0.5 font-mono">
+              <span id="entropy-text">Entropy: 0 bits</span>
+              <span id="crack-time-text">Thời gian crack: Tức thì</span>
+            </div>
+          </div>
+
+          <!-- CSPRNG Configuration Options -->
+          <div class="pt-2 border-t border-slate-200 space-y-2.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600">Độ dài ký tự:</span>
+              <span id="length-val" class="font-mono font-bold text-slate-900">20</span>
+            </div>
+            <input 
+              type="range" 
+              id="gen-length" 
+              min="10" 
+              max="64" 
+              value="20" 
+              oninput="document.getElementById('length-val').innerText = this.value; generateCSPRNGPassword();"
+              class="w-full accent-blue-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+            />
+
+            <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+              <label class="flex items-center gap-2 text-slate-600 cursor-pointer font-medium">
+                <input type="checkbox" id="gen-symbols" checked onchange="generateCSPRNGPassword()" class="rounded border-slate-300 text-blue-600 focus:ring-0">
+                <span>Ký tự đặc biệt (!@#$)</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-600 cursor-pointer font-medium">
+                <input type="checkbox" id="gen-numbers" checked onchange="generateCSPRNGPassword()" class="rounded border-slate-300 text-blue-600 focus:ring-0">
+                <span>Chữ số (0-9)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button 
+            type="button" 
+            onclick="closeCredentialModal()" 
+            class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
+          >
+            Hủy
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-1.5"
+          >
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Lưu Vào Database</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Client-side Cryptography, State & UI Logic -->
+  <script>
+    // State Management
+    let credentials = [];
+    let masterPasswordHash = null;
+    let isUnlocked = false;
+    let revealedKeys = new Set();
+    let clipboardTimer = null;
+
+    // Local Storage Keys
+    const VAULT_STORAGE_KEY = 'TOKENVECTOR_VAULT_DB';
+    const MASTER_HASH_KEY = 'TOKENVECTOR_MASTER_AUTH';
+
+    // Helper: Zero-Knowledge SHA-256 Hash
+    async function hashString(str) {
+      const utf8 = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Initialize Application
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      const existingHash = localStorage.getItem(MASTER_HASH_KEY);
+      if (!existingHash) {
+        document.getElementById('master-password-input').placeholder = 'Tạo Master Password mới...';
+      }
+    });
+
+    // Vault Unlock Handler
+    document.getElementById('vault-auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pass = document.getElementById('master-password-input').value;
+      if (!pass) return;
+
+      const inputHash = await hashString(pass);
+      const savedHash = localStorage.getItem(MASTER_HASH_KEY);
+
+      if (!savedHash) {
+        // Register Master Key
+        localStorage.setItem(MASTER_HASH_KEY, inputHash);
+        masterPasswordHash = inputHash;
+        showToast('Khởi tạo thành công!', 'Master Password đã được thiết lập bảo vệ két sắt.', 'success');
+        unlockApp();
+      } else if (savedHash === inputHash) {
+        masterPasswordHash = inputHash;
+        showToast('Mở khóa két sắt', 'Đã xác thực danh tính thành công.', 'success');
+        unlockApp();
+      } else {
+        showToast('Sai mật khẩu!', 'Master Password không chính xác. Vui lòng thử lại.', 'danger');
+        document.getElementById('master-password-input').value = '';
+      }
+    });
+
+    function unlockApp() {
+      isUnlocked = true;
+      document.getElementById('lock-modal').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('hidden');
+      loadVaultData();
+      lucide.createIcons();
+    }
+
+    function lockVault() {
+      isUnlocked = false;
+      document.getElementById('master-password-input').value = '';
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('lock-modal').classList.remove('hidden');
+      revealedKeys.clear();
+      showToast('Đã khóa két sắt', 'Tất cả thông tin tài khoản đã được bảo mật.', 'neutral');
+    }
+
+    // Data Load & Save
+    function loadVaultData() {
+      try {
+        const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+        if (raw) {
+          credentials = JSON.parse(raw);
+        } else {
+          // Preload demo seed records if empty
+          credentials = [
+            {
+              id: 'rec-1',
+              app: 'Google Workspace',
+              user: 'security-admin@company.com',
+              password: 'g!X9#kL2$vP8*mQ1&wZ4',
+              category: 'Công việc',
+              rating: 4,
+              entropy: 128,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            },
+            {
+              id: 'rec-2',
+              app: 'GitHub Enterprise',
+              user: 'dev_lead',
+              password: 'ghp_TokenVectorSafeSecretKey2026!#',
+              category: 'Server / Cloud',
+              rating: 4,
+              entropy: 135,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            },
+            {
+              id: 'rec-3',
+              app: 'Binance Exchange',
+              user: 'crypto_trader@vip.com',
+              password: 'BNB#Secure99281!xYzQ',
+              category: 'Tài chính',
+              rating: 4,
+              entropy: 115,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            }
+          ];
+          saveVaultData();
+        }
+      } catch (err) {
+        credentials = [];
+      }
+      renderTable(credentials);
+      updateStatistics();
+    }
+
+    function saveVaultData() {
+      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(credentials));
+      updateStatistics();
+    }
+
+    // Statistics Calculation
+    function updateStatistics() {
+      const total = credentials.length;
+      const strong = credentials.filter(c => c.rating >= 4).length;
+      const weak = credentials.filter(c => c.rating <= 2).length;
+
+      document.getElementById('stat-total').innerText = total;
+      document.getElementById('stat-strong').innerText = strong;
+      document.getElementById('stat-weak').innerText = weak;
+      document.getElementById('records-badge').innerText = `${total} bản ghi`;
+    }
+
+    // Dual-Field Search Logic (App and User)
+    function handleSearch() {
+      const queryApp = (document.getElementById('search-app').value || '').trim().toLowerCase();
+      const queryUser = (document.getElementById('search-user').value || '').trim().toLowerCase();
+
+      const filtered = credentials.filter(item => {
+        const matchApp = !queryApp || item.app.toLowerCase().includes(queryApp);
+        const matchUser = !queryUser || item.user.toLowerCase().includes(queryUser);
+        return matchApp && matchUser;
+      });
+
+      renderTable(filtered);
+    }
+
+    function resetSearch() {
+      document.getElementById('search-app').value = '';
+      document.getElementById('search-user').value = '';
+      renderTable(credentials);
+    }
+
+    // Render Table Rows (Light Theme: White background, Slate-900 Black text)
+    function renderTable(data) {
+      const tbody = document.getElementById('credential-table-body');
+      const emptyState = document.getElementById('empty-state');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      data.forEach(item => {
+        const isRevealed = revealedKeys.has(item.id);
+        const displayPassword = isRevealed ? item.password : '••••••••••••••••';
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50 transition-colors group';
+
+        row.innerHTML = `
+          <td class="py-4 px-4 font-bold text-slate-900">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              </span>
+              <span>${escapeHtml(item.app)}</span>
+            </div>
+          </td>
+          <td class="py-4 px-4 text-slate-700 font-mono text-[11px] font-medium">
+            ${escapeHtml(item.user)}
+          </td>
+          <td class="py-4 px-4 font-mono">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-300 text-slate-900 font-semibold text-[11px] select-all">
+                ${escapeHtml(displayPassword)}
+              </span>
+              <button 
+                type="button" 
+                onclick="toggleReveal('${item.id}')" 
+                class="p-1 text-slate-400 hover:text-slate-800 transition-colors"
+                title="${isRevealed ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}"
+              >
+                <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" class="w-3.5 h-3.5"></i>
+              </button>
+              <button 
+                type="button" 
+                onclick="copyToClipboard('${item.password}', '${escapeHtml(item.app)} - ${escapeHtml(item.user)}')" 
+                class="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                title="Sao chép vào Clipboard (Tự xóa sau 10s)"
+              >
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+          <td class="py-4 px-4">
+            ${getStrengthBadge(item.rating)}
+          </td>
+          <td class="py-4 px-4">
+            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              ${escapeHtml(item.category || 'Mặc định')}
+            </span>
+          </td>
+          <td class="py-4 px-4 text-right">
+            <div class="inline-flex items-center gap-1">
+              <button 
+                onclick="openEditModal('${item.id}')" 
+                class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                title="Chỉnh sửa bản ghi"
+              >
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button 
+                onclick="deleteCredential('${item.id}')" 
+                class="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                title="Xóa bản ghi"
+              >
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    function getStrengthBadge(rating) {
+      if (rating >= 4) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Cực Mạnh (Safe)</span>';
+      } else if (rating === 3) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Khá Tốt</span>';
+      } else if (rating === 2) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Trung Bình</span>';
+      } else {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">Yếu (Nguy Hiểm)</span>';
+      }
+    }
+
+    function toggleReveal(id) {
+      if (revealedKeys.has(id)) {
+        revealedKeys.delete(id);
+      } else {
+        revealedKeys.add(id);
+      }
+      handleSearch();
+    }
+
+    // Auto-Purge Clipboard Logic (10 Seconds)
+    function copyToClipboard(secret, label) {
+      navigator.clipboard.writeText(secret).then(() => {
+        showToast('Đã sao chép mật khẩu!', `Khóa cho "${label}" đã copy. Tự động xóa khỏi Clipboard sau 10 giây.`, 'success');
+
+        if (clipboardTimer) clearTimeout(clipboardTimer);
+        clipboardTimer = setTimeout(() => {
+          navigator.clipboard.writeText('').then(() => {
+            showToast('Clipboard Đã Xóa!', 'Mật khẩu tạm thời trong bộ nhớ đệm đã bị hủy tự động.', 'neutral');
+          }).catch(() => {});
+        }, 10000);
+      });
+    }
+
+    function copyQuickPassword(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Đã chép mật khẩu!', 'Đã lưu vào clipboard.', 'success');
+      });
+    }
+
+    // CSPRNG Password Generator
+    function generateCSPRNGPassword() {
+      const length = parseInt(document.getElementById('gen-length').value, 10) || 20;
+      const useSymbols = document.getElementById('gen-symbols').checked;
+      const useNumbers = document.getElementById('gen-numbers').checked;
+
+      let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (useNumbers) charset += '0123456789';
+      if (useSymbols) charset += '!@#$%^&*()-_=+[]{}|;:,.<>?';
+
+      const randomValues = new Uint32Array(length);
+      window.crypto.getRandomValues(randomValues);
+
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += charset[randomValues[i] % charset.length];
+      }
+
+      document.getElementById('entry-password').value = result;
+      evaluatePasswordStrength(result);
+    }
+
+    // Password Strength & Entropy Evaluator
+    function evaluatePasswordStrength(password) {
+      const bar = document.getElementById('strength-bar');
+      const label = document.getElementById('strength-label');
+      const entropyText = document.getElementById('entropy-text');
+      const crackText = document.getElementById('crack-time-text');
+
+      if (!password) {
+        bar.style.width = '0%';
+        bar.className = 'h-full bg-slate-300 rounded-full';
+        label.innerText = 'Chưa nhập';
+        label.className = 'font-bold text-slate-400';
+        entropyText.innerText = 'Entropy: 0 bits';
+        crackText.innerText = 'Thời gian crack: Tức thì';
+        return 0;
+      }
+
+      let poolSize = 0;
+      if (/[a-z]/.test(password)) poolSize += 26;
+      if (/[A-Z]/.test(password)) poolSize += 26;
+      if (/[0-9]/.test(password)) poolSize += 10;
+      if (/[^a-zA-Z0-9]/.test(password)) poolSize += 32;
+
+      const entropy = Math.round(password.length * Math.log2(Math.max(poolSize, 2)));
+      entropyText.innerText = `Entropy: ${entropy} bits`;
+
+      let rating = 1;
+      if (entropy < 40 || password.length < 8) {
+        rating = 1;
+        bar.style.width = '25%';
+        bar.className = 'h-full bg-red-500 rounded-full transition-all';
+        label.innerText = 'Yếu';
+        label.className = 'font-bold text-red-600';
+        crackText.innerText = 'Thời gian crack: Vài giây';
+      } else if (entropy < 65 || password.length < 12) {
+        rating = 2;
+        bar.style.width = '50%';
+        bar.className = 'h-full bg-amber-500 rounded-full transition-all';
+        label.innerText = 'Trung bình';
+        label.className = 'font-bold text-amber-600';
+        crackText.innerText = 'Thời gian crack: Vài ngày / tuần';
+      } else if (entropy < 85 || password.length < 16) {
+        rating = 3;
+        bar.style.width = '75%';
+        bar.className = 'h-full bg-blue-600 rounded-full transition-all';
+        label.innerText = 'Tốt';
+        label.className = 'font-bold text-blue-600';
+        crackText.innerText = 'Thời gian crack: Vài thế kỷ';
+      } else {
+        rating = 4;
+        bar.style.width = '100%';
+        bar.className = 'h-full bg-emerald-600 rounded-full transition-all';
+        label.innerText = 'Bất khả xâm phạm';
+        label.className = 'font-bold text-emerald-600';
+        crackText.innerText = 'Thời gian crack: Hàng triệu năm';
+      }
+
+      return rating;
+    }
+
+    // Modal Operations
+    function openCreateModal() {
+      document.getElementById('modal-title').innerText = 'Tạo Key & Mật Khẩu Mới';
+      document.getElementById('entry-id').value = '';
+      document.getElementById('entry-app').value = '';
+      document.getElementById('entry-user').value = '';
+      document.getElementById('entry-password').value = '';
+      document.getElementById('entry-category').value = 'Công việc';
+      document.getElementById('gen-length').value = 20;
+      document.getElementById('length-val').innerText = '20';
+
+      generateCSPRNGPassword();
+
+      document.getElementById('credential-modal').classList.remove('hidden');
+      document.getElementById('entry-app').focus();
+    }
+
+    function openEditModal(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+
+      document.getElementById('modal-title').innerText = 'Chỉnh Sửa Thông Tin Key';
+      document.getElementById('entry-id').value = item.id;
+      document.getElementById('entry-app').value = item.app;
+      document.getElementById('entry-user').value = item.user;
+      document.getElementById('entry-password').value = item.password;
+      document.getElementById('entry-category').value = item.category || 'Công việc';
+      evaluatePasswordStrength(item.password);
+
+      document.getElementById('credential-modal').classList.remove('hidden');
+    }
+
+    function closeCredentialModal() {
+      document.getElementById('credential-modal').classList.add('hidden');
+    }
+
+    // Form Save (Create or Update)
+    function saveCredential(e) {
+      e.preventDefault();
+      const id = document.getElementById('entry-id').value;
+      const app = document.getElementById('entry-app').value.trim();
+      const user = document.getElementById('entry-user').value.trim();
+      const password = document.getElementById('entry-password').value;
+      const category = document.getElementById('entry-category').value;
+
+      if (!app || !user || !password) {
+        showToast('Thiếu thông tin!', 'Vui lòng khai báo đầy đủ Tên App, Tên User và Mật Khẩu.', 'warning');
+        return;
+      }
+
+      const rating = evaluatePasswordStrength(password);
+
+      if (id) {
+        const index = credentials.findIndex(c => c.id === id);
+        if (index !== -1) {
+          credentials[index] = {
+            ...credentials[index],
+            app,
+            user,
+            password,
+            category,
+            rating,
+            updatedAt: new Date().toLocaleDateString('vi-VN')
+          };
+          showToast('Đã cập nhật!', `Bản ghi "${app}" đã được lưu thành công.`, 'success');
+        }
+      } else {
+        const newEntry = {
+          id: 'rec-' + Date.now(),
+          app,
+          user,
+          password,
+          category,
+          rating,
+          updatedAt: new Date().toLocaleDateString('vi-VN')
+        };
+        credentials.unshift(newEntry);
+        showToast('Tạo Key thành công!', `Đã thêm tài khoản "${app}" (${user}).`, 'success');
+      }
+
+      saveVaultData();
+      closeCredentialModal();
+      handleSearch();
+    }
+
+    // Delete Record
+    function deleteCredential(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+
+      if (confirm(`Bạn có chắc muốn xóa bản ghi của "${item.app}" (${item.user}) khỏi cơ sở dữ liệu?`)) {
+        credentials = credentials.filter(c => c.id !== id);
+        revealedKeys.delete(id);
+        saveVaultData();
+        handleSearch();
+        showToast('Đã xóa!', `Đã xóa tài khoản "${item.app}".`, 'neutral');
+      }
+    }
+
+    // Database Export & Import
+    function exportDatabase() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(credentials, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `PasswordVault_Backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Đã xuất Database', 'Tệp tin sao lưu JSON đã được tải về.', 'success');
+    }
+
+    function importDatabase(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            credentials = imported;
+            saveVaultData();
+            handleSearch();
+            showToast('Nhập Database thành công!', `Đã tải ${imported.length} bản ghi vào hệ thống.`, 'success');
+          } else {
+            showToast('Lỗi định dạng!', 'Tệp JSON không hợp lệ.', 'danger');
+          }
+        } catch (err) {
+          showToast('Lỗi đọc file!', 'Không thể phân tích dữ liệu JSON.', 'danger');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // UI Utilities: Toast Notifications (Light theme style)
+    function showToast(title, message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const typeStyles = {
+        success: 'border-emerald-200 bg-white text-emerald-800 shadow-md',
+        danger: 'border-red-200 bg-white text-red-800 shadow-md',
+        warning: 'border-amber-200 bg-white text-amber-800 shadow-md',
+        neutral: 'border-slate-200 bg-white text-slate-800 shadow-md'
+      };
+
+      const icons = {
+        success: 'check-circle-2',
+        danger: 'alert-triangle',
+        warning: 'alert-circle',
+        neutral: 'info'
+      };
+
+      const iconColors = {
+        success: 'text-emerald-600',
+        danger: 'text-red-600',
+        warning: 'text-amber-600',
+        neutral: 'text-blue-600'
+      };
+
+      toast.className = `pointer-events-auto p-4 rounded-2xl border transition-all duration-300 transform translate-x-10 opacity-0 flex items-start gap-3 ${typeStyles[type] || typeStyles.neutral}`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-5 h-5 shrink-0 mt-0.5 ${iconColors[type] || 'text-slate-600'}"></i>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-slate-900">${escapeHtml(title)}</p>
+          <p class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">${escapeHtml(message)}</p>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.remove('translate-x-10', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-x-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function togglePasswordVisibility(inputId, button) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        button.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+      } else {
+        input.type = 'password';
+        button.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+      }
+      lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+# -*- coding: utf-8 -*-
+"""
+TokenVector Password Manager - TokenVector High-Speed Indexing Engine
+Implements Sub-millisecond Tokenization, Inverted Vector Indexing,
+and Prefix Match for instant Command Palette searching.
+"""
+
+import re
+from typing import List, Dict, Set, Optional, Tuple
+from models import VaultItem
+
+# Regex to split on symbols, punctuation, and whitespace
+_TOKEN_SPLIT_REGEX = re.compile(r"[\s\.\-_@/\\:;,+=!?~#$%^&*()\[\]{}|<>]+")
+
+
+class TokenVectorEngine:
+    """
+    In-memory Inverted Vector Index for sub-millisecond query evaluation.
+    Enables O(1) / O(K) lookup across tens of thousands of vault records.
+    """
+
+    def __init__(self):
+        # Inverted index: token -> Set of item IDs
+        self.token_to_ids: Dict[str, Set[str]] = {}
+        # Prefix index: prefix -> Set of item IDs (for instant typing search)
+        self.prefix_to_ids: Dict[str, Set[str]] = {}
+        # In-memory RAM Cache of items: item ID -> VaultItem
+        self.items_cache: Dict[str, VaultItem] = {}
+
+    @staticmethod
+    def tokenize(text: "str") -> List["str"]:
+        """Extracts unique lowercase alphanumeric tokens from a string."""
+        if not text:
+            return []
+        raw_tokens = _TOKEN_SPLIT_REGEX.split(text.lower().strip())
+        # Filter out empty tokens
+        tokens = [t for t in raw_tokens if len(t) > 0]
+        return tokens
+
+    def _index_prefixes(self, token: "str", item_id: "str") -> None:
+        """Indexes character prefixes of token (min length 2) for instant search."""
+        max_prefix_len = min(len(token), 10)
+        for i in range(2, max_prefix_len + 1):
+            prefix = token[:i]
+            if prefix not in self.prefix_to_ids:
+                self.prefix_to_ids[prefix] = set()
+            self.prefix_to_ids[prefix].add(item_id)
+
+    def add_item(self, item: VaultItem) -> None:
+        """Indexes a single vault item into the TokenVector system."""
+        self.items_cache[item.id] = item
+
+        # Collect text sources for tokenization: Service, Username, Category
+        searchable_text = f"{item.service} {item.username} {item.category}"
+        tokens = self.tokenize(searchable_text)
+
+        for token in tokens:
+            if token not in self.token_to_ids:
+                self.token_to_ids[token] = set()
+            self.token_to_ids[token].add(item.id)
+            self._index_prefixes(token, item.id)
+
+    def remove_item(self, item_id: "str") -> None:
+        """Removes an item from the cache and indexes."""
+        if item_id in self.items_cache:
+            del self.items_cache[item_id]
+
+        for token_set in self.token_to_ids.values():
+            token_set.discard(item_id)
+
+        for prefix_set in self.prefix_to_ids.values():
+            prefix_set.discard(item_id)
+
+    def rebuild(self, items: List[VaultItem]) -> None:
+        """Rebuilds the entire TokenVector index from scratch."""
+        self.token_to_ids.clear()
+        self.prefix_to_ids.clear()
+        self.items_cache.clear()
+        for item in items:
+            self.add_item(item)
+
+    def query(self, search_term: "str") -> List[VaultItem]:
+        """
+        Executes real-time query using TokenVector Bitwise/Set intersection.
+        Returns matched VaultItems ranked by relevance score.
+        """
+        query_text = search_term.strip().lower()
+        if not query_text:
+            # Return all items sorted by recently updated
+            all_items = list(self.items_cache.values())
+            all_items.sort(key=lambda x: x.updated_at, reverse=True)
+            return all_items
+
+        query_tokens = self.tokenize(query_text)
+        if not query_tokens:
+            return []
+
+        # Find matching item IDs for each token
+        candidate_sets: List[Set[str]] = []
+        for q_token in query_tokens:
+            token_matches = set()
+            # Exact token match
+            if q_token in self.token_to_ids:
+                token_matches.update(self.token_to_ids[q_token])
+            # Prefix token match
+            if q_token in self.prefix_to_ids:
+                token_matches.update(self.prefix_to_ids[q_token])
+
+            # Substring fallback for short queries if still empty
+            if not token_matches and len(q_token) >= 2:
+                for full_token, ids in self.token_to_ids.items():
+                    if q_token in full_token:
+                        token_matches.update(ids)
+
+            candidate_sets.append(token_matches)
+
+        if not candidate_sets:
+            return []
+
+        # Perform Set Intersection (AND logic across all query terms)
+        final_id_set = candidate_sets[0].copy()
+        for s in candidate_sets[1:]:
+            final_id_set &= s
+
+        # Retrieve items and calculate relevance ranking
+        scored_results: List[Tuple["f64", VaultItem]] = []
+        for item_id in final_id_set:
+            item = self.items_cache.get(item_id)
+            if not item:
+                continue
+
+            score = 0.0
+            item_service_lower = item.service.lower()
+            item_username_lower = item.username.lower()
+
+            # Exact phrase match gets highest score
+            if query_text == item_service_lower:
+                score += 100.0
+            elif item_service_lower.startswith(query_text):
+                score += 50.0
+            elif query_text in item_service_lower:
+                score += 30.0
+
+            if query_text in item_username_lower:
+                score += 20.0
+
+            # Favor recently used/updated items
+            score += min(item.updated_at / 1000000000.0, 10.0)
+
+            scored_results.append((score, item))
+
+        # Sort descending by score
+        scored_results.sort(key=lambda x: x[0], reverse=True)
+        return [item for _, item in scored_results]
+
+    def count(self) -> "i32":
+        """Returns total records indexed in RAM."""
+        return len(self.items_cache)

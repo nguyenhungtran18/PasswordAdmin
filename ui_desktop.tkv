@@ -1,0 +1,674 @@
+# -*- coding: utf-8 -*-
+"""
+TokenVector Password Manager - Minimalist Desktop User Interface
+Implements Single-View Command Palette, Real-Time TokenVector Filtering,
+1-Click Password Generator, Hotkey Navigation, and 10s Clipboard Purge.
+"""
+
+import time
+import threading
+import tkinter as tk
+from tkinter import ttk, messagebox
+from typing import List, Optional, Callable
+
+from models import VaultItem
+from crypto_engine import CryptoEngine, PasswordGenerator
+from token_vector_engine import TokenVectorEngine
+from vault_repository import VaultRepository
+
+# Design System Color Palette (Modern Dark Minimalist)
+BG_MAIN = "#0F1117"        # Deep Charcoal
+BG_SURFACE = "#171A23"     # Card surface
+BG_INPUT = "#202433"       # Input field background
+BG_SELECT = "#2D344B"      # Selected item highlight
+ACCENT_CYAN = "#00D26A"    # High-contrast action / lightning
+ACCENT_BLUE = "#6366F1"    # Primary action (Indigo)
+TEXT_PRIMARY = "#FFFFFF"   # Bright white
+TEXT_SECONDARY = "#94A3B8" # Slate grey
+BORDER_COLOR = "#2E3447"   # Subtle divider
+
+COLOR_VERY_WEAK = "#EF4444"   # Red
+COLOR_WEAK = "#F97316"        # Orange
+COLOR_MODERATE = "#EAB308"    # Yellow
+COLOR_STRONG = "#22C55E"      # Green
+COLOR_UNBREAKABLE = "#06B6D4" # Cyan
+
+
+class DesktopApp(tk.Tk):
+    """Main desktop window for the TokenVector Password Manager."""
+
+    def __init__(self, repo: VaultRepository, index_engine: TokenVectorEngine):
+        super().__init__()
+        self.repo = repo
+        self.engine = index_engine
+        self.master_key: Optional[bytes] = None
+
+        self.filtered_items: List[VaultItem] = []
+        self.selected_index: int = 0
+        self.last_copied_pwd: str = ""
+        self.clipboard_timer: Optional[threading.Timer] = None
+
+        self.title("TokenVector Secure Vault")
+        self.geometry("740x540")
+        self.minsize(680, 480)
+        self.configure(bg=BG_MAIN)
+
+        self._center_window(740, 540)
+        self._show_auth_view()
+
+    def _center_window(self, width: int, height: int) -> None:
+        """Positions window at the center of user display."""
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2 - 40
+        self.geometry(f"{width}x{height}+{x}+{y}")
+
+    # ==========================================
+    # 1. AUTHENTICATION & ZERO-KNOWLEDGE LOGIN
+    # ==========================================
+
+    def _show_auth_view(self) -> None:
+        """Displays master password login or initial vault creation."""
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        container = tk.Frame(self, bg=BG_MAIN)
+        container.pack(expand=True)
+
+        is_new = not self.repo.exists()
+
+        title_text = "Tạo Kho Khóa Mật Mã" if is_new else "Mở Khóa TokenVector Vault"
+        sub_text = (
+            "Thiết lập Master Password để khởi tạo chuẩn mã hóa AES-256-GCM Zero-Knowledge."
+            if is_new
+            else "Nhập Master Password để giải mã chỉ mục TokenVector trong RAM."
+        )
+
+        tk.Label(
+            container, text="⚡ TOKENVECTOR VAULT", font=("Segoe UI", 16, "bold"),
+            fg=ACCENT_CYAN, bg=BG_MAIN
+        ).pack(pady=(0, 4))
+
+        tk.Label(
+            container, text=title_text, font=("Segoe UI", 13, "bold"),
+            fg=TEXT_PRIMARY, bg=BG_MAIN
+        ).pack(pady=(0, 4))
+
+        tk.Label(
+            container, text=sub_text, font=("Segoe UI", 9),
+            fg=TEXT_SECONDARY, bg=BG_MAIN, wraplength=480, justify="center"
+        ).pack(pady=(0, 20))
+
+        pwd_frame = tk.Frame(container, bg=BG_INPUT, bd=1, relief="flat", padx=12, pady=6)
+        pwd_frame.pack(fill="x", pady=4)
+
+        self.auth_entry = tk.Entry(
+            pwd_frame, show="•", font=("Segoe UI", 12),
+            bg=BG_INPUT, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY,
+            bd=0, relief="flat", width=34
+        )
+        self.auth_entry.pack()
+        self.auth_entry.focus()
+        self.auth_entry.bind("<Return>", lambda e: self._handle_auth(is_new))
+
+        btn_text = "Khởi Tạo & Khóa Ngay" if is_new else "Mở Khóa Ngay (Enter)"
+        action_btn = tk.Button(
+            container, text=btn_text, font=("Segoe UI", 10, "bold"),
+            bg=ACCENT_BLUE, fg=TEXT_PRIMARY, activebackground=ACCENT_CYAN,
+            bd=0, padx=20, pady=8, cursor="hand2",
+            command=lambda: self._handle_auth(is_new)
+        )
+        action_btn.pack(pady=(16, 0))
+
+    def _handle_auth(self, is_new: bool) -> None:
+        """Executes key derivation and unlocks vault."""
+        master_pwd = self.auth_entry.get()
+        if not master_pwd or len(master_pwd) < 6:
+            messagebox.showwarning("Cảnh Báo", "Mật khẩu chủ phải có ít nhất 6 ký tự.")
+            return
+
+        if is_new:
+            # Seed with sample items to demonstrate TokenVector index
+            sample_pwd = PasswordGenerator.generate_random_password(24)
+            ent_bits, score, _ = PasswordGenerator.calculate_entropy(sample_pwd)
+            temp_key = secrets.token_bytes(32)
+            c, n, t = CryptoEngine.encrypt_payload(sample_pwd, temp_key)
+
+            sample_item = VaultItem(
+                id=secrets.token_hex(8),
+                service="Google Workspace",
+                username="admin@domain.com",
+                ciphertext=c,
+                nonce=n,
+                tag=t,
+                category="Work",
+                strength_score=score,
+                entropy_bits=ent_bits,
+                created_at=int(time.time()),
+                updated_at=int(time.time()),
+            )
+
+            self.master_key = self.repo.initialize_vault(master_pwd, [sample_item])
+            # Re-encrypt sample item with actual derived key
+            c, n, t = CryptoEngine.encrypt_payload(sample_pwd, self.master_key)
+            sample_item.ciphertext, sample_item.nonce, sample_item.tag = c, n, t
+            self.repo.save_vault([sample_item])
+            self.engine.rebuild([sample_item])
+        else:
+            key, items, msg = self.repo.unlock_vault(master_pwd)
+            if not key:
+                messagebox.showerror("Từ Chối Truy Cập", msg)
+                return
+            self.master_key = key
+            self.engine.rebuild(items)
+
+        self._show_main_view()
+
+    # ==========================================
+    # 2. SINGLE-VIEW COMMAND PALETTE MAIN UI
+    # ==========================================
+
+    def _show_main_view(self) -> None:
+        """Builds the single-screen Command Palette interface."""
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        self.filtered_items = self.engine.query("")
+        self.selected_index = 0
+
+        # --- Top Command Palette Bar ---
+        top_bar = tk.Frame(self, bg=BG_MAIN, padx=20, pady=16)
+        top_bar.pack(fill="x")
+
+        search_container = tk.Frame(top_bar, bg=BG_INPUT, padx=12, pady=6)
+        search_container.pack(side="left", fill="x", expand=True)
+
+        tk.Label(
+            search_container, text="🔍", font=("Segoe UI", 12),
+            fg=TEXT_SECONDARY, bg=BG_INPUT
+        ).pack(side="left", padx=(0, 8))
+
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self._on_search_change)
+
+        self.search_entry = tk.Entry(
+            search_container, textvariable=self.search_var,
+            font=("Segoe UI", 11), bg=BG_INPUT, fg=TEXT_PRIMARY,
+            insertbackground=TEXT_PRIMARY, bd=0, relief="flat"
+        )
+        self.search_entry.pack(side="left", fill="x", expand=True)
+        self.search_entry.focus()
+
+        # 1-Click Lightning Generator Button
+        lightning_btn = tk.Button(
+            top_bar, text="⚡ Sinh Mật Khẩu (Ctrl+G)", font=("Segoe UI", 9, "bold"),
+            bg=BG_INPUT, fg=ACCENT_CYAN, activebackground=BG_SELECT,
+            bd=0, padx=12, pady=6, cursor="hand2",
+            command=self._open_generator_dialog
+        )
+        lightning_btn.pack(side="left", padx=(10, 6))
+
+        # Add New Item Button
+        add_btn = tk.Button(
+            top_bar, text="＋ Thêm Mới", font=("Segoe UI", 9, "bold"),
+            bg=ACCENT_BLUE, fg=TEXT_PRIMARY, activebackground=ACCENT_CYAN,
+            bd=0, padx=12, pady=6, cursor="hand2",
+            command=self._open_add_dialog
+        )
+        add_btn.pack(side="left")
+
+        # --- Status Banner (Clipboard countdown / stats) ---
+        self.status_bar = tk.Frame(self, bg=BG_MAIN, padx=20, pady=2)
+        self.status_bar.pack(fill="x")
+
+        self.stats_lbl = tk.Label(
+            self.status_bar,
+            text=f"RAM Index: {self.engine.count()} tài khoản | Phím tắt: [↑/↓] Chọn, [Enter] Copy mật khẩu, [Del] Xóa",
+            font=("Segoe UI", 8), fg=TEXT_SECONDARY, bg=BG_MAIN
+        )
+        self.stats_lbl.pack(side="left")
+
+        self.toast_lbl = tk.Label(
+            self.status_bar, text="", font=("Segoe UI", 8, "bold"),
+            fg=ACCENT_CYAN, bg=BG_MAIN
+        )
+        self.toast_lbl.pack(side="right")
+
+        # --- Minimalist Account Card List ---
+        list_outer = tk.Frame(self, bg=BG_MAIN, padx=20, pady=10)
+        list_outer.pack(fill="both", expand=True)
+
+        self.canvas = tk.Canvas(list_outer, bg=BG_MAIN, bd=0, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(list_outer, orient="vertical", command=self.canvas.yview)
+
+        self.cards_frame = tk.Frame(self.canvas, bg=BG_MAIN)
+        self.cards_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.cards_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.bind(
+            "<Configure>",
+            lambda e: self.canvas.itemconfig(self.canvas_window, width=e.width)
+        )
+
+        # Global Hotkey Bindings
+        self.bind("<Up>", self._on_nav_up)
+        self.bind("<Down>", self._on_nav_down)
+        self.bind("<Return>", self._on_enter_pressed)
+        self.bind("<Control-g>", lambda e: self._open_generator_dialog())
+        self.bind("<Control-n>", lambda e: self._open_add_dialog())
+        self.bind("<Delete>", self._on_delete_pressed)
+        self.bind("<Escape>", self._on_escape_pressed)
+
+        self._render_cards()
+
+    # ==========================================
+    # 3. REAL-TIME SEARCH & CARD RENDERING
+    # ==========================================
+
+    def _on_search_change(self, *args) -> None:
+        """Triggered on every keystroke in search bar; O(1) TokenVector query."""
+        term = self.search_var.get()
+        self.filtered_items = self.engine.query(term)
+        self.selected_index = 0
+        self._render_cards()
+
+    def _render_cards(self) -> None:
+        """Renders minimal card items with visual strength badge."""
+        for widget in self.cards_frame.winfo_children():
+            widget.destroy()
+
+        if not self.filtered_items:
+            empty_lbl = tk.Label(
+                self.cards_frame,
+                text="Không tìm thấy tài khoản phù hợp với từ khóa.",
+                font=("Segoe UI", 10, "italic"),
+                fg=TEXT_SECONDARY, bg=BG_MAIN
+            )
+            empty_lbl.pack(pady=40)
+            return
+
+        for idx, item in enumerate(self.filtered_items):
+            is_selected = (idx == self.selected_index)
+            card_bg = BG_SELECT if is_selected else BG_SURFACE
+
+            card = tk.Frame(
+                self.cards_frame, bg=card_bg, padx=14, pady=10,
+                cursor="hand2", bd=1, relief="flat"
+            )
+            card.pack(fill="x", pady=4)
+
+            # Left side: Service Title & Username
+            left_info = tk.Frame(card, bg=card_bg)
+            left_info.pack(side="left", fill="x", expand=True)
+
+            title_row = tk.Frame(left_info, bg=card_bg)
+            title_row.pack(anchor="w")
+
+            strength_color = self._get_strength_color(item.strength_score)
+            tk.Label(
+                title_row, text="●", font=("Segoe UI", 9, "bold"),
+                fg=strength_color, bg=card_bg
+            ).pack(side="left", padx=(0, 6))
+
+            tk.Label(
+                title_row, text=item.service, font=("Segoe UI", 11, "bold"),
+                fg=TEXT_PRIMARY, bg=card_bg
+            ).pack(side="left")
+
+            tk.Label(
+                title_row, text=f"({item.category})", font=("Segoe UI", 8),
+                fg=TEXT_SECONDARY, bg=card_bg
+            ).pack(side="left", padx=6)
+
+            tk.Label(
+                left_info, text=item.username, font=("Segoe UI", 9),
+                fg=TEXT_SECONDARY, bg=card_bg
+            ).pack(anchor="w", pady=(2, 0))
+
+            # Right side: Hotkey action hint
+            right_action = tk.Frame(card, bg=card_bg)
+            right_action.pack(side="right")
+
+            hint_text = "↵ Copy Mật Khẩu" if is_selected else "Enter"
+            tk.Label(
+                right_action, text=hint_text, font=("Segoe UI", 8, "bold"),
+                fg=ACCENT_CYAN if is_selected else TEXT_SECONDARY, bg=card_bg
+            ).pack(side="right", padx=6)
+
+            # Click selection binding
+            card.bind("<Button-1>", lambda e, i=idx: self._select_card(i))
+            for child in card.winfo_children():
+                child.bind("<Button-1>", lambda e, i=idx: self._select_card(i))
+
+    def _select_card(self, idx: int) -> None:
+        self.selected_index = idx
+        self._render_cards()
+
+    def _get_strength_color(self, score: int) -> str:
+        if score <= 0:
+            return COLOR_VERY_WEAK
+        if score == 1:
+            return COLOR_WEAK
+        if score == 2:
+            return COLOR_MODERATE
+        if score == 3:
+            return COLOR_STRONG
+        return COLOR_UNBREAKABLE
+
+    # ==========================================
+    # 4. KEYBOARD NAVIGATION & SHORTCUTS
+    # ==========================================
+
+    def _on_nav_up(self, event) -> None:
+        if self.filtered_items and self.selected_index > 0:
+            self.selected_index -= 1
+            self._render_cards()
+            self._scroll_to_selected()
+
+    def _on_nav_down(self, event) -> None:
+        if self.filtered_items and self.selected_index < len(self.filtered_items) - 1:
+            self.selected_index += 1
+            self._render_cards()
+            self._scroll_to_selected()
+
+    def _scroll_to_selected(self) -> None:
+        total = len(self.filtered_items)
+        if total > 0:
+            fraction = self.selected_index / float(total)
+            self.canvas.yview_moveto(max(0.0, fraction - 0.1))
+
+    def _on_enter_pressed(self, event) -> None:
+        """Copies password of currently selected item to clipboard."""
+        if not self.filtered_items or self.selected_index >= len(self.filtered_items):
+            return
+        item = self.filtered_items[self.selected_index]
+        self._copy_item_password(item)
+
+    def _on_delete_pressed(self, event) -> None:
+        """Deletes selected account item."""
+        if not self.filtered_items or self.selected_index >= len(self.filtered_items):
+            return
+        item = self.filtered_items[self.selected_index]
+        confirm = messagebox.askyesno("Xác Nhận", f"Bạn có chắc muốn xóa tài khoản '{item.service}'?")
+        if confirm:
+            self.engine.remove_item(item.id)
+            all_items = list(self.engine.items_cache.values())
+            self.repo.save_vault(all_items)
+            self.filtered_items = self.engine.query(self.search_var.get())
+            self.selected_index = max(0, min(self.selected_index, len(self.filtered_items) - 1))
+            self._render_cards()
+            self._show_toast("Đã xóa tài khoản thành công.")
+
+    def _on_escape_pressed(self, event) -> None:
+        if self.search_var.get():
+            self.search_var.set("")
+        else:
+            self.search_entry.focus()
+
+    # ==========================================
+    # 5. ZERO-KNOWLEDGE CLIPBOARD & 10s AUTO-PURGE
+    # ==========================================
+
+    def _copy_item_password(self, item: VaultItem) -> None:
+        """Decrypts password in RAM, copies to clipboard, and sets 10s purge timer."""
+        if not self.master_key:
+            return
+
+        plaintext = CryptoEngine.decrypt_payload(
+            item.ciphertext, item.nonce, item.tag, self.master_key
+        )
+        if plaintext is None:
+            messagebox.showerror("Lỗi Giải Mã", "Dữ liệu bị hỏng hoặc chữ ký xác thực không hợp lệ.")
+            return
+
+        # Copy to clipboard
+        self.clipboard_clear()
+        self.clipboard_append(plaintext)
+        self.update()
+        self.last_copied_pwd = plaintext
+
+        self._show_toast(f"Đã copy mật khẩu '{item.service}'! Tự hủy sau 10s.")
+
+        # Schedule automatic purge thread after 10 seconds
+        if self.clipboard_timer and self.clipboard_timer.is_alive():
+            self.clipboard_timer.cancel()
+
+        self.clipboard_timer = threading.Timer(10.0, self._purge_clipboard, args=[plaintext])
+        self.clipboard_timer.daemon = True
+        self.clipboard_timer.start()
+
+    def _purge_clipboard(self, secret: str) -> None:
+        """Purges sensitive password from Windows clipboard if it matches."""
+        try:
+            current = self.clipboard_get()
+            if current == secret:
+                self.clipboard_clear()
+                self.clipboard_append("")
+                self.after(0, lambda: self._show_toast("🔒 Clipboard đã tự động hủy mật khẩu an toàn."))
+        except Exception:
+            pass
+
+    def _show_toast(self, message: str) -> None:
+        self.toast_lbl.config(text=message)
+        self.after(6000, lambda: self.toast_lbl.config(text=""))
+
+    # ==========================================
+    # 6. MODALS: 1-CLICK GENERATOR & ADD ITEM
+    # ==========================================
+
+    def _open_generator_dialog(self) -> None:
+        """Opens high-entropy password generator dialog (Ctrl+G)."""
+        dialog = tk.Toplevel(self)
+        dialog.title("1-Click Advanced Password Generator")
+        dialog.geometry("540x380")
+        dialog.configure(bg=BG_MAIN)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        container = tk.Frame(dialog, bg=BG_MAIN, padx=20, pady=20)
+        container.pack(fill="both", expand=True)
+
+        tk.Label(
+            container, text="⚡ BỘ SINH MẬT KHẨU ENTROPY CAO",
+            font=("Segoe UI", 12, "bold"), fg=ACCENT_CYAN, bg=BG_MAIN
+        ).pack(anchor="w")
+
+        # Result display
+        res_frame = tk.Frame(container, bg=BG_INPUT, padx=12, pady=8)
+        res_frame.pack(fill="x", pady=12)
+
+        res_var = tk.StringVar()
+        res_entry = tk.Entry(
+            res_frame, textvariable=res_var, font=("Consolas", 12, "bold"),
+            fg=ACCENT_CYAN, bg=BG_INPUT, bd=0, relief="flat"
+        )
+        res_entry.pack(side="left", fill="x", expand=True)
+
+        # Entropy & Strength Badge
+        strength_lbl = tk.Label(container, text="", font=("Segoe UI", 9, "bold"), bg=BG_MAIN)
+        strength_lbl.pack(anchor="w", pady=(0, 10))
+
+        # Controls
+        length_frame = tk.Frame(container, bg=BG_MAIN)
+        length_frame.pack(fill="x", pady=4)
+
+        tk.Label(length_frame, text="Độ dài ký tự: ", font=("Segoe UI", 9), fg=TEXT_PRIMARY, bg=BG_MAIN).pack(side="left")
+        length_var = tk.IntVar(value=24)
+        len_val_lbl = tk.Label(length_frame, text="24", font=("Segoe UI", 9, "bold"), fg=ACCENT_CYAN, bg=BG_MAIN)
+        len_val_lbl.pack(side="right")
+
+        len_slider = ttk.Scale(
+            length_frame, from_=8, to=64, variable=length_var, orient="horizontal",
+            command=lambda val: len_val_lbl.config(text=str(int(float(val))))
+        )
+        len_slider.pack(side="left", fill="x", expand=True, padx=10)
+
+        # Mode toggles
+        mode_var = tk.StringVar(value="RANDOM")
+
+        toggle_frame = tk.Frame(container, bg=BG_MAIN)
+        toggle_frame.pack(fill="x", pady=8)
+
+        tk.Radiobutton(
+            toggle_frame, text="Ký tự ngẫu nhiên CSPRNG (Khuyên dùng)", variable=mode_var,
+            value="RANDOM", font=("Segoe UI", 9), fg=TEXT_PRIMARY, bg=BG_MAIN,
+            selectcolor=BG_INPUT, activebackground=BG_MAIN
+        ).pack(anchor="w")
+
+        tk.Radiobutton(
+            toggle_frame, text="Passphrase dễ nhớ (Diceware 5 từ + số ngẫu nhiên)", variable=mode_var,
+            value="PASSPHRASE", font=("Segoe UI", 9), fg=TEXT_PRIMARY, bg=BG_MAIN,
+            selectcolor=BG_INPUT, activebackground=BG_MAIN
+        ).pack(anchor="w")
+
+        def refresh_pwd():
+            mode = mode_var.get()
+            if mode == "PASSPHRASE":
+                pwd = PasswordGenerator.generate_passphrase(words_count=5)
+            else:
+                length = length_var.get()
+                pwd = PasswordGenerator.generate_random_password(length=length)
+            res_var.set(pwd)
+            ent, score, label = PasswordGenerator.calculate_entropy(pwd)
+            color = self._get_strength_color(score)
+            strength_lbl.config(text=f"Độ an toàn: {label} ({ent} bits Entropy)", fg=color)
+
+        refresh_pwd()
+
+        # Action Buttons
+        btn_row = tk.Frame(container, bg=BG_MAIN)
+        btn_row.pack(fill="x", pady=(14, 0))
+
+        tk.Button(
+            btn_row, text="🔄 Tạo Lại", font=("Segoe UI", 9, "bold"),
+            bg=BG_INPUT, fg=TEXT_PRIMARY, activebackground=BG_SELECT,
+            bd=0, padx=14, pady=6, cursor="hand2",
+            command=refresh_pwd
+        ).pack(side="left")
+
+        def copy_and_close():
+            pwd = res_var.get()
+            self.clipboard_clear()
+            self.clipboard_append(pwd)
+            self.update()
+            self._show_toast("Mật khẩu mới đã được sao chép vào Clipboard!")
+            dialog.destroy()
+
+        tk.Button(
+            btn_row, text="Sao Chép & Đóng", font=("Segoe UI", 9, "bold"),
+            bg=ACCENT_BLUE, fg=TEXT_PRIMARY, activebackground=ACCENT_CYAN,
+            bd=0, padx=16, pady=6, cursor="hand2",
+            command=copy_and_close
+        ).pack(side="right")
+
+    def _open_add_dialog(self) -> None:
+        """Opens modal to add and encrypt a new account item."""
+        dialog = tk.Toplevel(self)
+        dialog.title("Thêm Tài Khoản Mới")
+        dialog.geometry("480x420")
+        dialog.configure(bg=BG_MAIN)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        container = tk.Frame(dialog, bg=BG_MAIN, padx=20, pady=20)
+        container.pack(fill="both", expand=True)
+
+        tk.Label(
+            container, text="＋ LƯU TÀI KHOẢN MỚI",
+            font=("Segoe UI", 12, "bold"), fg=TEXT_PRIMARY, bg=BG_MAIN
+        ).pack(anchor="w", pady=(0, 10))
+
+        def make_field(label: str, default: str = "") -> tk.Entry:
+            tk.Label(container, text=label, font=("Segoe UI", 9), fg=TEXT_SECONDARY, bg=BG_MAIN).pack(anchor="w")
+            f = tk.Frame(container, bg=BG_INPUT, padx=8, pady=6)
+            f.pack(fill="x", pady=(2, 8))
+            e = tk.Entry(f, font=("Segoe UI", 10), bg=BG_INPUT, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY, bd=0)
+            e.pack(fill="x")
+            if default:
+                e.insert(0, default)
+            return e
+
+        service_entry = make_field("Tên Dịch Vụ / Ứng Dụng (VD: Facebook, Google, AWS):")
+        service_entry.focus()
+        user_entry = make_field("Username / Email:")
+        cat_entry = make_field("Danh Mục (Web, Social, Banking, Server...):", "Web")
+
+        tk.Label(container, text="Mật Khẩu:", font=("Segoe UI", 9), fg=TEXT_SECONDARY, bg=BG_MAIN).pack(anchor="w")
+        pwd_row = tk.Frame(container, bg=BG_MAIN)
+        pwd_row.pack(fill="x", pady=(2, 12))
+
+        pwd_field = tk.Frame(pwd_row, bg=BG_INPUT, padx=8, pady=6)
+        pwd_field.pack(side="left", fill="x", expand=True)
+        pwd_entry = tk.Entry(pwd_field, font=("Segoe UI", 10), bg=BG_INPUT, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY, bd=0)
+        pwd_entry.pack(fill="x")
+
+        # 1-Click lightning auto-generate and fill button
+        def quick_fill_pwd():
+            pwd = PasswordGenerator.generate_random_password(24)
+            pwd_entry.delete(0, tk.END)
+            pwd_entry.insert(0, pwd)
+
+        tk.Button(
+            pwd_row, text="⚡ 1-Click", font=("Segoe UI", 9, "bold"),
+            bg=BG_INPUT, fg=ACCENT_CYAN, activebackground=BG_SELECT,
+            bd=0, padx=10, pady=6, cursor="hand2",
+            command=quick_fill_pwd
+        ).pack(side="right", padx=(6, 0))
+
+        # Auto-fill high entropy password by default
+        quick_fill_pwd()
+
+        def save_item():
+            service = service_entry.get().strip()
+            username = user_entry.get().strip()
+            category = cat_entry.get().strip() or "General"
+            password = pwd_entry.get()
+
+            if not service or not username or not password:
+                messagebox.showwarning("Thiếu Thông Tin", "Vui lòng điền đầy đủ Tên Dịch Vụ, Username và Mật Khẩu.")
+                return
+
+            if not self.master_key:
+                return
+
+            # Encrypt password with AES-256-GCM
+            c, n, t = CryptoEngine.encrypt_payload(password, self.master_key)
+            ent_bits, score, _ = PasswordGenerator.calculate_entropy(password)
+
+            new_item = VaultItem(
+                id=secrets.token_hex(8),
+                service=service,
+                username=username,
+                ciphertext=c,
+                nonce=n,
+                tag=t,
+                category=category,
+                strength_score=score,
+                entropy_bits=ent_bits,
+                created_at=int(time.time()),
+                updated_at=int(time.time()),
+            )
+
+            self.engine.add_item(new_item)
+            all_items = list(self.engine.items_cache.values())
+            self.repo.save_vault(all_items)
+
+            self.filtered_items = self.engine.query(self.search_var.get())
+            self._render_cards()
+            self._show_toast(f"Đã lưu và mã hóa '{service}' thành công!")
+            dialog.destroy()
+
+        tk.Button(
+            container, text="Lưu Vào Vault (AES-GCM)", font=("Segoe UI", 10, "bold"),
+            bg=ACCENT_BLUE, fg=TEXT_PRIMARY, activebackground=ACCENT_CYAN,
+            bd=0, padx=16, pady=8, cursor="hand2",
+            command=save_item
+        ).pack(fill="x", pady=(8, 0))

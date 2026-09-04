@@ -1,0 +1,28 @@
+# -*- coding: utf-8 -*-
+"""
+TokenVector Password Manager - Main Entry Point
+Lightweight, Zero-Knowledge, O(1) TokenVector Indexed Desktop Application.
+"""
+
+import sys
+from vault_repository import VaultRepository
+from token_vector_engine import TokenVectorEngine
+from ui_desktop import DesktopApp
+
+
+def run() -> "str":
+    """Main entrypoint function for TokenVector AOT compiler and runtime."""
+    repo = VaultRepository(file_path="vault.tkvdb")
+    engine = TokenVectorEngine()
+    app = DesktopApp(repo=repo, index_engine=engine)
+    app.mainloop()
+    return "TOKENVECTOR_VAULT_EXIT_SUCCESS"
+
+
+def main() -> "i32":
+    res = run()
+    return 0
+
+
+if __name__ == "__main__":
+    main()

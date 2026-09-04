@@ -87,30 +87,46 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 
 ---
 
-## 💻 Hướng Dẫn Sử Dụng (Quick Usage)
+## 📥 Hướng Dẫn Tải & Cài Đặt (Download & Setup)
 
-### 1. Khởi Chạy Web UI (Khuyên dùng)
-Ứng dụng Web UI hoàn toàn độc lập (Self-Contained SPA), không cần cấu hình web server:
+### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
+Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-```bash
-# Cách 1: Click đúp vào file launcher trên Windows Explorer:
-Open_PasswordAdmin_Web.bat
-
-# Cách 2: Mở trực tiếp file index.html bằng trình duyệt (Chrome, Edge, Firefox, Brave):
-start index.html
-```
-
-* **Giao diện:** Nền trắng chữ đen thanh lịch, sắc nét, trực quan.
-* **Sử dụng:**
-  1. Nhập Master Password để mở khóa két sắt.
-  2. Bấm **"Tạo Key Mới"** ➔ Nhập Tên App & Tên User ➔ Bấm **"Tạo Ngẫu Nhiên (CSPRNG)"** ➔ Bấm **"Lưu Vào Database"**.
-  3. Dùng 2 ô tìm kiếm để lọc tài khoản bất cứ lúc nào.
-  4. Bấm biểu tượng **Copy** ➔ Mật khẩu được sao chép và sẽ tự động biến mất khỏi clipboard sau 10 giây.
+📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin.zip (v1.0.0)](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v1.0.0/PasswordAdmin.zip)**
 
 ---
 
-### 2. Khởi Chạy & Biên Dịch Native CLI Bằng TokenVector
+### 2. Hướng Dẫn Giải Nén
+1. Sau khi tải tệp `PasswordAdmin.zip`, nhấp chuột phải vào tệp và chọn **Extract All...** (hoặc sử dụng phần mềm 7-Zip / WinRAR chọn **Extract to PasswordAdmin**).
+2. Chọn thư mục lưu trữ thuận tiện trên máy tính (ví dụ: `D:\PasswordAdmin` hoặc `C:\Tools\PasswordAdmin`).
+3. Mở thư mục vừa giải nén, bạn sẽ thấy các tệp: `index.html`, `Open_PasswordAdmin_Web.bat`, `PasswordAdmin.exe`, `README.md`, v.v.
 
+---
+
+### 3. Hướng Dẫn Vào Phần Mềm Lần Đầu Tiên (First-Time Setup)
+
+1. **Khởi chạy ứng dụng:**
+   - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`** (hoặc nhấp đúp trực tiếp vào tệp **`index.html`**).
+   - Ứng dụng sẽ tự động mở trên trình duyệt mặc định (Google Chrome, Microsoft Edge, Firefox, Brave) với giao diện nền trắng chữ đen sắc nét.
+
+2. **Khởi tạo Master Password (Mật khẩu chính bảo vệ két sắt):**
+   - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập mật khẩu chính muốn thiết lập vào ô *Master Password*.
+   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, mật khẩu bạn nhập trong lần khởi chạy đầu tiên này sẽ được băm bảo mật (SHA-256) và trở thành **Master Key** bảo vệ toàn bộ cơ sở dữ liệu. Vui lòng ghi nhớ mật khẩu này!
+   - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính.
+
+3. **Tạo tài khoản & mật khẩu đầu tiên:**
+   - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
+   - **Bước 1 (Khai báo bắt buộc):** Nhập *Tên Ứng Dụng / Dịch Vụ* (ví dụ: `Google`, `GitHub`, `Binance`...) và *Tên Người Dùng / Email* (ví dụ: `security_admin@gmail.com`).
+   - **Bước 2 (Tạo Key):** Bấm nút **"Tạo Ngẫu Nhiên (CSPRNG)"** để phần mềm tự động tính toán và sinh mật khẩu 20 ký tự đạt mức *Cực Mạnh (Unbreakable)*, hoặc tự nhập mật khẩu riêng của bạn.
+   - Bấm **"Lưu Vào Database"** để hoàn tất bản ghi đầu tiên!
+
+4. **Sao chép an toàn với Auto-Purge Clipboard:**
+   - Tại dòng tài khoản vừa lưu, bấm biểu tượng **Copy**.
+   - Mật khẩu sẽ được sao chép vào bộ nhớ đệm và **tự động bị xóa vĩnh viễn khỏi Clipboard sau 10 giây** để bảo vệ an toàn.
+
+---
+
+## 💻 Hướng Dẫn Vận Hành Bằng Dòng Lệnh CLI (TokenVector Native)
 Dành cho nhà phát triển muốn chạy CLI hoặc biên dịch lại bằng công cụ phát triển **[TokenVector SDK](https://github.com/nguyenhungtran18/TokenVector)**:
 
 ```bash

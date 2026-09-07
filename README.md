@@ -1,5 +1,5 @@
 # PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.0.0</sup>
-
+[Tiếng Việt](README.md) | [English](Readme.Eng.md)
 ---
 
 **Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Zero-Knowledge & CSPRNG).**  

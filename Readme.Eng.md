@@ -1,4 +1,5 @@
 # PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) v2.0.0
+[English](Readme.Eng.md) | [Tiếng Việt](README.md)
 
 A high-security, local-first credential management vault and smart password generation utility engineered with the **TokenVector** core language. It enforces strict declaration workflows, zero-knowledge isolation, hardware entropy generation, and automated clipboard hygiene.
 

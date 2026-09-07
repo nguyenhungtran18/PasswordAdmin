@@ -3,6 +3,12 @@
 
 A high-security, local-first credential management vault and smart password generation utility engineered with the **TokenVector** core language. It enforces strict declaration workflows, zero-knowledge isolation, hardware entropy generation, and automated clipboard hygiene.
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-nguyenhungtran18%2FPasswordAdmin-181717?style=flat-square&logo=github)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Core Language](https://img.shields.io/badge/Core_Engine-TokenVector-blueviolet?style=flat-square&logo=codeforces)](https://github.com/nguyenhungtran18/TokenVector)
+[![Architecture](https://img.shields.io/badge/Architecture-Native_AOT_+_Web_UI-0284c7?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Encryption](https://img.shields.io/badge/Security-Zero--Knowledge_SHA--256-059669?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Interface](https://img.shields.io/badge/Theme-Modern_Light_Mode-0f172a?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)
 ---
 
 ## ⚡ Local-First & Zero-Knowledge by Design

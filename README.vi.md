@@ -110,7 +110,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Ứng dụng sẽ tự động mở trên trình duyệt mặc định (Google Chrome, Microsoft Edge, Firefox, Brave) với giao diện nền trắng chữ đen sắc nét.
 
 2. **Khởi tạo Master Password (Mật khẩu chính bảo vệ két sắt):**
-   - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập mật khẩu chính muốn thiết lập vào ô *Master Password*.
+   - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập mật khẩu chính là 123456.
    - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, mật khẩu bạn nhập trong lần khởi chạy đầu tiên này sẽ được băm bảo mật (SHA-256) và trở thành **Master Key** bảo vệ toàn bộ cơ sở dữ liệu. Vui lòng ghi nhớ mật khẩu này!
    - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính.
 
@@ -186,54 +186,6 @@ PasswordAmin Samples screenshots:
 <img width="446" height="434" alt="Master_Key" src="https://github.com/user-attachments/assets/6161f8b9-4398-4b9a-9d18-e1bc77569741" />
 <img width="1220" height="561" alt="DashBoard" src="https://github.com/user-attachments/assets/119b2aa7-d241-459e-bc6e-017d299098b1" />
 <img width="509" height="749" alt="Generate_Key" src="https://github.com/user-attachments/assets/58701a74-29f3-4309-aa66-0fb93b9a4f94" />
----
-
-## 📖 Hướng Dẫn Sử Dụng (Usage Guide)
-
-### 1. Khởi Động Ứng Dụng
-
-* **Cách 1: Khởi chạy 1-Click (Khuyên dùng)**
-  * Nhấp đúp chuột vào file `Open_PasswordAdmin_Web.bat`.
-  * Trình duyệt mặc định sẽ tự động mở giao diện `index.html` và kích hoạt backend mã hóa `crypto_bridge_server.exe` trên cổng `8765`.
-* **Cách 2: Khởi chạy CLI thủ công**
-  * Mở CMD hoặc PowerShell tại thư mục dự án:
-    ```bash
-    .\PasswordAdmin.exe
-    ```
-
----
-
-### 2. Mở Khóa & Thiết Lập Vault
-
-* ** Nhập **Master Password** 123456 để mở khóa duy nhất để mã hóa/giải mã toàn bộ cơ sở dữ liệu (`PasswordVault.vault.json`).
-* **Vault mẫu (Sample Data):** Sử dụng Master Password mẫu để khám phá các bản ghi có sẵn (nếu có cấu hình).
-> ⚠️ **Lưu ý:** Hệ thống hoạt động theo nguyên tắc **Zero-Knowledge**. Nếu quên Master Password, toàn bộ dữ liệu sẽ không thể khôi phục.
-
----
-
-### 3. Tạo Mật Khẩu Mới Trong PasswordAdmin (Pre-Declaration Flow)
-
-Hệ thống bắt buộc khai báo ngữ cảnh trước khi sinh mật khẩu nhằm tối ưu chỉ mục tra cứu:
-
-1. Nhấp vào nút **Create Key** (hoặc **Tạo Mới**) ở góc trên bên phải.
-2. Điền đầy đủ 2 trường bắt buộc:
-   * **Application / Service:** Tên dịch vụ (ví dụ: `github.com`, `AWS Console`, `Gmail`).
-   * **Username / Email:** Tài khoản đăng nhập tương ứng.
-3. Tùy chỉnh tham số sinh khóa:
-   * **Độ dài ký tự:** Kéo thanh trượt (khuyến nghị từ **16 - 24+** ký tự).
-   * **Bộ ký tự:** Chọn/bỏ chọn Ký tự đặc biệt (`!@#$`), Chữ số (`0-9`), Chữ hoa/thường.
-   * **Kiểm tra Entropy:** Đảm bảo thang đo đạt mức **Safe (65-84 bits)** hoặc **Unbreakable (≥ 85 bits)**.
-4. Nhấn **Generate CSPRNG** để tạo chuỗi ngẫu nhiên từ phần cứng.
-5. Nhấn **Lưu Vào Database** để mã hóa và ghi vào kho dữ liệu.
-
----
-
-### 4. Tìm Kiếm & Sao Chép An Toàn
-
-* **Tìm kiếm thời gian thực (O(1)):** Nhập từ khóa vào ô tìm kiếm. Bộ lọc Inverted Index sẽ quét đồng thời cả tên **Application** và **Username** mà không có độ trễ.
-* **Tự động xóa Clipboard sau 10s:**
-  * Nhấn vào biểu tượng **Copy** cạnh mật khẩu.
-  * Mật khẩu sẽ được lưu tạm vào bộ nhớ đệm và **tự động xóa vĩnh viễn sau 10 giây (10,000 ms)** để chống phần mềm gián điệp đọc trộm clipboard.
 
 ---
 

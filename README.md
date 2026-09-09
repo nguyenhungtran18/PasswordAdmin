@@ -161,6 +161,54 @@ PasswordAmin Samples screenshots:
 
 ---
 
+## 📖 Usage Guide
+
+### 1. Launching the Application
+
+* **Method 1: 1-Click Launch (Recommended)**
+  * Double-click the `Open_PasswordAdmin_Web.bat` file.
+  * Your default web browser will automatically open `index.html` and spin up the cryptographic backend `crypto_bridge_server.exe` on port `8765`.
+* **Method 2: Manual CLI Launch**
+  * Open Command Prompt or PowerShell in the project directory:
+    ```bash
+    .\PasswordAdmin.exe
+    ```
+
+---
+
+### 2. Unlocking & Initializing the Vault
+
+* **Default / Sample Vault:** Enter the sample Master Password `123456` to unlock and decrypt the local database (`PasswordVault.vault.json`).
+* **New Vault Setup:** Set your own Master Password. It acts as the sole key to encrypt and decrypt the entire database.
+> ⚠️ **Notice:** The system operates strictly on a **Zero-Knowledge** architecture. If you lose your Master Password, your vault data cannot be recovered.
+
+---
+
+### 3. Generating a New Credential (Pre-Declaration Flow)
+
+PasswordAdmin enforces context declaration before generating credentials to optimize indexing:
+
+1. Click the **Create Key** button in the top right corner.
+2. Fill in the two mandatory fields:
+   * **Application / Service:** The target service name (e.g., `github.com`, `AWS Console`, `Gmail`).
+   * **Username / Email:** The corresponding account identifier.
+3. Configure password parameters:
+   * **Length:** Adjust the slider (recommended: **16 - 24+** characters).
+   * **Character Sets:** Toggle Special Characters (`!@#$`), Numbers (`0-9`), Uppercase/Lowercase letters.
+   * **Entropy Meter:** Ensure the strength indicator reaches **Safe (65-84 bits)** or **Unbreakable (≥ 85 bits)**.
+4. Click **Generate CSPRNG** to produce a cryptographically secure random password.
+5. Click **Save to Database** to encrypt and store the entry.
+
+---
+
+### 4. Real-time Search & Secure Clipboard Copy
+
+* **Instant Search ($O(1)$):** Type into the search field. The Inverted Index filter scans across both **Application** and **Username** fields simultaneously with zero latency.
+* **Auto-Purge Clipboard (10s):**
+  * Click the **Copy** icon next to any password.
+  * The password is saved to the clipboard and **automatically wiped after 10 seconds (10,000 ms)** to mitigate clipboard-hijacking spyware.
+
+---
 ## 📜 Version History
 
 | Version | Core Engine | Status | Description |

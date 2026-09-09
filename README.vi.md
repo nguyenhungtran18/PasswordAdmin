@@ -109,7 +109,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`** (hoặc nhấp đúp trực tiếp vào tệp **`index.html`**).
    - Ứng dụng sẽ tự động mở trên trình duyệt mặc định (Google Chrome, Microsoft Edge, Firefox, Brave) với giao diện nền trắng chữ đen sắc nét.
 
-2. **Khởi tạo Master Password (Mật khẩu chính bảo vệ két sắt):**
+2. **Master Password (Mật khẩu chính bảo vệ két sắt):**
    - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập mật khẩu chính là 123456.
    - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, mật khẩu bạn nhập trong lần khởi chạy đầu tiên này sẽ được băm bảo mật (SHA-256) và trở thành **Master Key** bảo vệ toàn bộ cơ sở dữ liệu. Vui lòng ghi nhớ mật khẩu này!
    - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính.

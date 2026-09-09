@@ -175,6 +175,17 @@ PasswordAdmin/
    • "12345678", "password", "admin"
    • Tên cá nhân hoặc ngày sinh nhật dễ đoán
 ```
+PasswordAmin Samples screenshots:
+
+## 1. CLI: 
+<img width="818" height="435" alt="PasswordAdmin_CLI" src="https://github.com/user-attachments/assets/b5010ffe-1ceb-4d49-9644-c160e4dd0a6a" />
+<img width="964" height="476" alt="PasswordAdmin_CLI_1" src="https://github.com/user-attachments/assets/88e4dd87-31bb-499b-86d5-5b5ab98368c4" />
+<img width="966" height="475" alt="PasswordAdmin_CLI_2" src="https://github.com/user-attachments/assets/bf9160c5-a511-44bd-9d5c-90803cbf4a27" />
+
+## 2.Web UI:
+<img width="446" height="434" alt="Master_Key" src="https://github.com/user-attachments/assets/6161f8b9-4398-4b9a-9d18-e1bc77569741" />
+<img width="1220" height="561" alt="DashBoard" src="https://github.com/user-attachments/assets/119b2aa7-d241-459e-bc6e-017d299098b1" />
+<img width="509" height="749" alt="Generate_Key" src="https://github.com/user-attachments/assets/58701a74-29f3-4309-aa66-0fb93b9a4f94" />
 
 ---
 

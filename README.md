@@ -62,7 +62,7 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 5. **Sao Lưu & Di Chuyển Dữ Liệu (Backup & Restore):** Xuất toàn bộ vault **đang mã hóa AES-256-GCM** ra JSON (`PasswordVault_Backup_YYYY-MM-DD.json`) hoặc nạp tệp sao lưu (yêu cầu đúng Master Password/salt tương ứng) chỉ trong 1 thao tác.
 6. **Bảo Vệ Bằng Két Sắt Master Vault:** Khóa toàn bộ ứng dụng khi rời máy tính, giải mã lại tức thì bằng Master Password.
 7. **Đổi Mật Khẩu Đăng Nhập:** Đổi Master Password ngay trong Web UI mà không mất dữ liệu — DEK được bọc lại với salt mới và lưu đè lên DB mặc định (Recovery Key giữ nguyên).
-8. **Tạo Recovery Key & Tự Khôi Phục Khi Quên Mật Khẩu:** Tạo key 24 từ một lần, quên pass thì tự đặt lại ở màn hình khóa mà không mất dữ liệu. Mất cả pass lẫn key thì chỉ còn cách tạo két mới trắng.
+8. **Tạo Recovery Key & Tự Khôi Phục Khi Quên Mật Khẩu:** Tạo key 24 từ một lần, quên pass thì gõ tay hoặc **nạp file Emergency Kit (.txt)** ở màn hình khóa để tự đặt lại — không mất dữ liệu, app không bao giờ tự xóa két.
 
 ---
 
@@ -139,8 +139,8 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
 6. **Tạo Recovery Key + cách khôi phục khi quên mật khẩu:**
    - **Tạo key:** Bấm icon **phao cứu sinh 🛟** trên header → **"Tạo Recovery Key (24 từ)"** → key hiện **đúng 1 lần**: ghi ra giấy/cất offline (hoặc tải file `.txt`), rồi nhập lại 3 từ được hỏi để kích hoạt. Muốn đổi key thì **"Xoay Recovery Key"** (key cũ vô hiệu ngay).
-   - **Quên mật khẩu:** Ở màn hình khóa bấm **"Quên mật khẩu? Khôi phục bằng Recovery Key"** → nhập đủ 24 từ → đặt Master Password mới → két mở lại, dữ liệu nguyên vẹn, Recovery Key giữ nguyên.
-   - **Mất cả hai:** Trong cùng màn hình khôi phục (hoặc modal Bảo mật khi đã mở két), gõ `XOA` để tạo két mới trắng — mất toàn bộ dữ liệu cũ, không hoàn tác.
+   - **Quên mật khẩu (2 cách, không cần gõ tay):** Ở màn hình khóa bấm **"Quên mật khẩu? Khôi phục bằng Recovery Key"** → hoặc (a) nhập đủ 24 từ (chấp nhận phẩy/chấm phẩy/xuống dòng), hoặc (b) bấm **"Nạp file Emergency Kit (.txt)"** để app tự điền → bấm Xác minh → đặt Master Password mới → két mở lại, dữ liệu nguyên vẹn, Recovery Key giữ nguyên.
+   - **Mất cả hai:** App **không có và không bao giờ có nút xóa két** — dữ liệu của bạn được giữ nguyên trong file vault, chỉ là tạm thời không ai mở được (kể cả tác giả). Hãy tìm lại tờ key/file Emergency Kit đã lưu; đó là lý do bước tạo key bắt xác nhận 3 từ.
    - **Ai là chủ két?** App không có tài khoản/server nên không "xác minh danh tính" kiểu CCCD/email được — **ai giữ Recovery Key (hoặc nhớ mật khẩu) thì người đó là chủ**. Vì vậy: cất key như cất chìa khóa nhà. Sai quá 5 lần bị khóa 60s; mọi sự kiện ghi vào **Nhật ký bảo mật** (xem trong modal 🛟) để phát hiện truy cập lạ.
 
 ---
@@ -209,7 +209,7 @@ PasswordAdmin/
 | **v1.0.0** | TokenVector CLI | 📦 Legacy | Bản dựng ban đầu chạy trên console terminal với AOT compilation. |
 | **v2.0.0** | **TokenVector + Web UI** | 📦 Trước đây | Thêm Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
 | **v2.1.0** | **TokenVector + Web UI + Bridge** | 📦 Trước đây | Thêm **Đổi Master Password**, loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
-| **v2.2.0** | **TokenVector + Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục/reset két), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
+| **v2.2.0** | **TokenVector + Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục bằng gõ tay hoặc nạp file `.txt`), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két, **không có chức năng xóa két**. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
 
 ---
 

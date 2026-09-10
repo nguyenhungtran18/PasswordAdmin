@@ -5,7 +5,7 @@
 **Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Mã hóa cục bộ & CSPRNG).**  
 **Tạo và quản lý thông tin đăng nhập với quy trình chuẩn mực — cục bộ hoàn toàn, không cloud, không gửi dữ liệu ra ngoài thiết bị.**
 
-**Local-First by Design (mã hóa phía máy khách)**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, bọc/mở khóa và giải mã vault đều diễn ra trong trình duyệt của bạn — **không cloud, không tài khoản, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi file vault (dạng bản mã) và sinh mật khẩu qua `crypto_engine.exe`; toàn bộ lưu lượng không rời khỏi `127.0.0.1`.
+**Local-First by Design (mã hóa phía máy khách)**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, bọc/mở khóa và giải mã vault đều diễn ra trong trình duyệt của bạn — **không cloud, không tài khoản, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi file vault (dạng bản mã) và sinh mật khẩu ngẫu nhiên nội bộ; toàn bộ lưu lượng không rời khỏi `127.0.0.1`.
 
 *Ghi chú thuật ngữ: app **không** dùng zero-knowledge proof (giao thức chứng minh không tiết lộ tri thức). Bảo mật dựa trên mã hóa xác thực chuẩn **AES-256-GCM + PBKDF2-HMAC-SHA256 600.000 iterations**. Mọi chỗ trong tài liệu/bản cũ ghi "Zero-Knowledge" đều nên hiểu đúng là "mã hóa cục bộ, không server".*
 
@@ -33,7 +33,7 @@
 
 - **Quy Trình Khai Báo Nghiêm Ngặt (Mandatory Pre-Declaration):** Người dùng bắt buộc phải khai báo (1) Tên Ứng dụng/Dịch vụ và (2) Tên Người dùng/Email trước khi tiến hành tạo hoặc lưu mật khẩu.
 - **Bảo Mật Bộ Đệm Tự Hủy (Auto-Purge Clipboard 10s):** Mật khẩu sao chép vào bộ nhớ tạm (Clipboard) sẽ tự động bị xóa sạch sau 10 giây để chống lại các mã độc theo dõi clipboard (Clipboard Hijackers).
-- **CSPRNG Lai (Bridge + Fallback):** Web UI ưu tiên gọi loopback server `GET http://127.0.0.1:8765/generate?length=N` (server gọi `crypto_engine.exe --generate`, chỉ nhận độ dài 8–64); khi server không chạy hoặc tắt ký tự đặc biệt/chữ số, fallback sang `window.crypto.getRandomValues` của trình duyệt.
+- **CSPRNG Lai (Bridge + Fallback):** Web UI ưu tiên gọi loopback server `GET http://127.0.0.1:8765/generate?length=N` (server sinh mật khẩu nội bộ, **luôn trả cố định 20 ký tự** bất kể `length` yêu cầu); chỉ gọi bridge khi bật cả ký tự đặc biệt + chữ số, còn lại fallback sang `window.crypto.getRandomValues` của trình duyệt.
 - **Tìm Kiếm Kép Đa Trường (Dual-Field Realtime Search):** Tra cứu độc lập hoặc kết hợp đồng thời theo Tên App và Tên User thời gian thực (lọc tuyến tính, phân biệt không dấu theo đúng chuỗi nhập).
 - **Đổi Master Password (Re-wrap DEK):** Đổi mật khẩu đăng nhập/mở két ngay trong Web UI (nút chìa khóa trên header): xác thực mật khẩu cũ bằng cách mở thử DEK → bọc lại DEK bằng mật khẩu mới (salt mới) → ghi đè DB. Recovery Key giữ nguyên hiệu lực.
 - **Recovery Key 24 từ (BIP39):** Chìa khóa dự phòng khi quên mật khẩu — sinh ngẫu nhiên, hiện đúng 1 lần, xác nhận bằng cách nhập lại 3 từ. Ghi ra giấy, cất offline.
@@ -45,7 +45,7 @@
 ## 💎 Những Điều Bạn Có Thể Làm (What You Can Do)
 
 1. **Tạo Mật Khẩu Chuẩn Quy Trình:** Nhập thông tin App & User trước, sau đó bấm tạo mật khẩu ngẫu nhiên CSPRNG với 1 click.
-2. **Tùy Biến Độ Dài & Độ Phức Tạp:** Thanh trượt độ dài 10 đến 64 ký tự (server `crypto_engine.exe` chỉ nhận 8–64), bật/tắt ký tự đặc biệt và chữ số. *Hiện tại chưa có tùy chọn loại bỏ ký tự dễ nhầm (`l`, `1`, `I`, `0`, `O`).*
+2. **Tùy Biến Độ Dài & Độ Phức Tạp:** Thanh trượt độ dài 10 đến 64 ký tự (chỉ có tác dụng khi tắt bớt 1 ô tùy chọn hoặc server tắt — đường bridge mặc định luôn trả cố định 20 ký tự), bật/tắt ký tự đặc biệt và chữ số. *Hiện tại chưa có tùy chọn loại bỏ ký tự dễ nhầm (`l`, `1`, `I`, `0`, `O`).*
 3. **Đo Lường Entropy Thời Gian Thực:** Thước đo Entropy toán học ($E = L \times \log_2(N)$) và ước tính thời gian Brute-force bẻ khóa. Xếp hạng còn xét thêm độ dài tối thiểu (8/12/16 ký tự).
 4. **Quản Lý Cơ Sở Dữ Liệu Dạng Bảng (CRUD):** Xem danh sách, ẩn/hiện mật khẩu dạng `••••••••`, chỉnh sửa và xóa bản ghi với giao diện DataTable trực quan.
 5. **Sao Lưu & Di Chuyển Dữ Liệu (Backup & Restore):** Xuất toàn bộ vault **đang mã hóa AES-256-GCM** ra JSON (`PasswordVault_Backup_YYYY-MM-DD.json`) hoặc nạp tệp sao lưu (yêu cầu đúng Master Password/salt tương ứng) chỉ trong 1 thao tác.
@@ -63,7 +63,7 @@
 | Thành phần | Đặc tả kỹ thuật | Mục đích & Lợi ích |
 |:---|:---|:---|
 | **Search Engine** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
-| **CSPRNG Engine** | `crypto_bridge_server.exe` + `crypto_engine.exe --generate` (8–64 ký tự), fallback `crypto.getRandomValues` | Ưu tiên engine native, tự fallback khi server tắt |
+| **CSPRNG Engine** | loopback server `crypto_bridge_server.exe` (port 8765, luôn trả 20 ký tự; chỉ gọi khi bật cả ký tự đặc biệt + chữ số), fallback `crypto.getRandomValues` | Ưu tiên server nội bộ, tự fallback khi server tắt hoặc tắt bớt tùy chọn |
 | **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Mã hóa phía máy khách: Master Password và Recovery Key không bao giờ rời khỏi trình duyệt; file vault chỉ chứa bản mã. Ngoại lệ duy nhất: mật khẩu vừa sinh bằng bridge đi qua loopback HTTP (`127.0.0.1:8765`) dưới dạng plaintext — chỉ ở trong máy bạn, nhưng tiến trình local khác về lý thuyết có thể đọc được |
 | **Recovery Key** | 24 từ BIP39 English (2048 từ, ~264-bit entropy) + PBKDF2-600k; hiện 1 lần, xác nhận 3 từ, hỗ trợ tải Emergency Kit `.txt` | Quên pass vẫn tự khôi phục, không cần ai khác |
 | **Chống đoán mò** | Sai quá 5 lần → khóa 60s (lưu localStorage) + nhật ký 100 sự kiện | Chống kẻ mượn máy đoán mò tại chỗ |
@@ -145,8 +145,7 @@ PasswordAdmin/
 │   └── Open_PasswordAdmin_Web.bat # 1-click: chạy server rồi mở Web UI (lưu ý: fix dấu `"` thừa ở cuối dòng start)
 ├── index.html                   # Biến thể Web UI dùng File System Access API (showSaveFilePicker, Chrome/Edge)
 ├── Open_PasswordAdmin_Web.bat   # 1-click mở bản Web UI chính + server (hiện đã đổi target sang PasswordAdmin WebUI/)
-├── crypto_bridge.py / .exe                # Bridge HTTP GET /generate?length= (8–64) → gọi crypto_engine.exe
-├── crypto_engine.exe / crypto_engine_new.exe # Engine sinh mật khẩu native
+├── crypto_bridge.py / .exe                # Bridge HTTP: đọc/ghi vault + sinh mật khẩu (luôn trả 20 ký tự)
 ├── LICENSE                      # Giấy phép MIT License
 └── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.2.0)
 ```

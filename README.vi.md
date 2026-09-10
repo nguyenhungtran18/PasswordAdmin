@@ -5,7 +5,7 @@
 **Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Zero-Knowledge & CSPRNG).**  
 **Tạo và quản lý thông tin đăng nhập với quy trình chuẩn mực — cục bộ hoàn toàn, không cloud, không gửi dữ liệu ra ngoài thiết bị.**
 
-**Local-First & Zero-Knowledge by Design**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, mã hóa và giải mã đều được thực hiện trực tiếp tại chỗ **không cloud, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi vault và sinh mật khẩu qua `crypto_engine.exe`; toàn bộ lưu lượng không rời khỏi máy của bạn.
+**Local-First & Zero-Knowledge by Design**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, mã hóa và giải mã đều được thực hiện trực tiếp tại chỗ, **không cloud, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi vault và sinh mật khẩu qua `crypto_engine.exe`; toàn bộ lưu lượng không rời khỏi máy của bạn.
 
 ---
 

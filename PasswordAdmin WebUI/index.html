@@ -1835,22 +1835,30 @@
       });
     }
 
-    function downloadRecoveryWords() {
-      if (!pendingRecoveryWords) return;
-      const content = [
+    function buildRecoveryKitText(words) {
+      return [
         'PasswordAdmin — Recovery Key (GIỮ KÍN, CẤT OFFLINE)',
         'Ngày tạo: ' + new Date().toLocaleString('vi-VN'),
         '',
-        pendingRecoveryWords.join(' '),
+        words.join(' '),
         '',
         'Cảnh báo: ai có 24 từ này đều mở được két của bạn. Không chụp màn hình, không lưu cloud/email.'
       ].join('\n');
+    }
+
+    // Luôn dùng cùng tên file để ghi đè file cũ (nếu trình duyệt lưu thành file mới, nhớ xóa file cũ)
+    function downloadRecoveryKitFile(words) {
       const a = document.createElement('a');
-      a.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+      a.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(buildRecoveryKitText(words)));
       a.setAttribute('download', 'PasswordAdmin-Recovery-Key.txt');
       document.body.appendChild(a);
       a.click();
       a.remove();
+    }
+
+    function downloadRecoveryWords() {
+      if (!pendingRecoveryWords) return;
+      downloadRecoveryKitFile(pendingRecoveryWords);
       showToast('Đã tải Emergency Kit', 'Cất file nơi an toàn, tách khỏi máy tính.', 'success');
     }
 
@@ -1869,14 +1877,17 @@
       btn.disabled = true;
       try {
         const isRotate = !!vaultWrapRec;
+        const activatedWords = pendingRecoveryWords.slice();
         vaultSaltRec = crypto.getRandomValues(new Uint8Array(16));
-        vaultWrapRec = await wrapDEK(vaultDEK, await deriveKEK(pendingRecoveryWords.join(' '), vaultSaltRec));
+        vaultWrapRec = await wrapDEK(vaultDEK, await deriveKEK(activatedWords.join(' '), vaultSaltRec));
         await saveVaultData();
+        // Tự xuất file .txt (cùng tên file để ghi đè file cũ)
+        downloadRecoveryKitFile(activatedWords);
         auditEvent(isRotate ? 'recovery_rotated' : 'recovery_setup', '');
         closeRecoverySetupModal();
         updateRecoveryBanner();
         if (!document.getElementById('security-modal').classList.contains('hidden')) openSecurityModal();
-        showToast('Đã kích hoạt Recovery Key!', isRotate ? 'Key cũ không còn hiệu lực.' : 'Quên mật khẩu vẫn khôi phục được từ nay.', 'success');
+        showToast('Đã kích hoạt Recovery Key!', isRotate ? 'Key cũ vô hiệu. File .txt mới đã tự tải về — nhớ xóa file cũ.' : 'File .txt đã tự tải về — cất kỹ, tách khỏi máy tính.', 'success');
       } catch (err) {
         console.error('Recovery setup failed:', err);
         showToast('Thất bại!', 'Không thể ghi DB. Hãy thử lại.', 'danger');

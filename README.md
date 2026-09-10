@@ -10,8 +10,7 @@
 ---
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-nguyenhungtran18%2FPasswordAdmin-181717?style=flat-square&logo=github)](https://github.com/nguyenhungtran18/PasswordAdmin)
-[![Core Language](https://img.shields.io/badge/Core_Engine-TokenVector-blueviolet?style=flat-square&logo=codeforces)](https://github.com/nguyenhungtran18/TokenVector)
-[![Architecture](https://img.shields.io/badge/Architecture-Native_AOT_+_Web_UI-0284c7?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
+[![Architecture](https://img.shields.io/badge/Architecture-Web_UI-0284c7?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![Encryption](https://img.shields.io/badge/Security-AES--256--GCM_PBKDF2--600k-059669?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![Interface](https://img.shields.io/badge/Theme-Modern_Light_Mode-0f172a?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)
@@ -23,20 +22,8 @@
 **Bằng việc sử dụng phần mềm này, bạn hiểu và đồng ý với các nguyên tắc bảo mật Zero-Knowledge sau:**
 
 * **Khôi phục bằng Recovery Key (không còn "mất là hết"):** Két vault v2 dùng khóa mã hóa dữ liệu (DEK) được bọc 2 lớp độc lập — bằng Master Password **và** bằng Recovery Key 24 từ. Quên mật khẩu thì dùng Recovery Key để đặt lại (xem mục 6 bên dưới). **Ai giữ Recovery Key thì người đó mở được két** — đây là định nghĩa "chủ két" trong mô hình Zero-Knowledge (không tài khoản, không server xác thực). Mất **cả hai** (mật khẩu + Recovery Key) thì không ai — kể cả tác giả — cứu được dữ liệu.
-* **Tự Chủ Quyền Riêng Tư (Full Sovereignty):** Toàn bộ cơ sở dữ liệu Web UI được lưu trực tiếp trên máy cục bộ của bạn (`PasswordAdmin WebUI/PasswordVault.vault.json`, định dạng JSON mã hóa AES-256-GCM) hoặc tệp sao lưu JSON do bạn quản lý. Tệp `vault.tkvdb` là database của bản CLI TokenVector legacy, không phải DB mặc định của Web UI.
+* **Tự Chủ Quyền Riêng Tư (Full Sovereignty):** Toàn bộ cơ sở dữ liệu được lưu trực tiếp trên máy cục bộ của bạn (`PasswordAdmin WebUI/PasswordVault.vault.json`, định dạng JSON mã hóa AES-256-GCM) hoặc tệp sao lưu JSON do bạn quản lý.
 * **Phần mềm được cung cấp nguyên trạng ("AS IS"):** Vui lòng lưu trữ Master Password và tạo bản sao lưu dữ liệu thường xuyên.
-
----
-
-## 🚀 Trụ Cột Cốt Lõi: TokenVector Core Engine
-
-Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm tốc độ cao của **PasswordAdmin** được xây dựng bằng ngôn ngữ lập trình **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)**:
-
-* ⚡ **Tìm Kiếm Theo App/User:** Module TokenVector native (`token_vector_engine.tkv`) thử nghiệm chỉ mục đảo ngược cho bản CLI. **Web UI hiện tại tìm kiếm bằng lọc tuyến tính $O(N)$** (`Array.filter` theo Tên App + Tên User), đủ nhanh ở quy mô vài nghìn bản ghi.
-* 🛡️ **An Toàn Bộ Nhớ (Memory Safety):** Mục tiêu thiết kế của TokenVector là giảm nguy cơ tràn bộ đệm (Buffer Overflow) và lỗi quản lý bộ nhớ thường gặp trong code native.
-* 📦 **Biên Dịch AOT Native Độc Lập:** Mã nguồn `.tkv` được biên dịch AOT thành binary PE native (`PasswordAdmin.exe` ~30 KB), khởi động ngay mà không cần cài đặt môi trường cồng kềnh.
-
-🔗 **Tìm hiểu thêm về ngôn ngữ TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
 
 ---
 
@@ -48,8 +35,8 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 - **Tìm Kiếm Kép Đa Trường (Dual-Field Realtime Search):** Tra cứu độc lập hoặc kết hợp đồng thời theo Tên App và Tên User thời gian thực (lọc tuyến tính, phân biệt không dấu theo đúng chuỗi nhập).
 - **Đổi Master Password (Re-wrap DEK):** Đổi mật khẩu đăng nhập/mở két ngay trong Web UI (nút chìa khóa trên header): xác thực mật khẩu cũ bằng cách mở thử DEK → bọc lại DEK bằng mật khẩu mới (salt mới) → ghi đè DB. Recovery Key giữ nguyên hiệu lực.
 - **Recovery Key 24 từ (BIP39):** Chìa khóa dự phòng khi quên mật khẩu — sinh ngẫu nhiên, hiện đúng 1 lần, xác nhận bằng cách nhập lại 3 từ. Ghi ra giấy, cất offline.
-- **Rate-limit + Nhật ký bảo mật:** Sai mật khẩu/key quá 5 lần thì tạm khóa 60 giây; mọi sự kiện (mở két, đổi pass, khôi phục, reset) ghi vào nhật ký cục bộ, xem lại trong modal "Khôi phục & Bảo mật".
-- **Giao Diện Kép Linh Hoạt (Dual-Interface):** Vừa hỗ trợ giao diện Web UI hiện đại (nền trắng chữ đen, tương phản cao), vừa hỗ trợ Native CLI cho môi trường dòng lệnh/terminal. Lưu ý: bản Web UI chính **yêu cầu chạy loopback server cục bộ** qua `Open_PasswordAdmin_Web.bat`, không phải "zero-server" hoàn toàn.
+- **Rate-limit + Nhật ký bảo mật:** Sai mật khẩu/key quá 5 lần thì tạm khóa 60 giây; mọi sự kiện (mở két, đổi pass, khôi phục, khóa tạm) ghi vào nhật ký cục bộ, xem lại trong modal "Khôi phục & Bảo mật".
+- **Web UI Duy Nhất:** Chỉ hỗ trợ giao diện Web UI hiện đại (nền trắng chữ đen, tương phản cao, dùng ngay trên trình duyệt). Lưu ý: bản Web UI chính **yêu cầu chạy loopback server cục bộ** qua `Open_PasswordAdmin_Web.bat`, không phải "zero-server" hoàn toàn.
 
 ---
 
@@ -73,8 +60,7 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 
 | Thành phần | Đặc tả kỹ thuật | Mục đích & Lợi ích |
 |:---|:---|:---|
-| **Core Language** | **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)** (`.tkv`) | Module native cho CLI/engine mật mã & tìm kiếm |
-| **Search Engine (Web UI)** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
+| **Search Engine** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
 | **CSPRNG Engine** | `crypto_bridge_server.exe` + `crypto_engine.exe --generate` (8–64 ký tự), fallback `crypto.getRandomValues` | Ưu tiên engine native, tự fallback khi server tắt |
 | **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Zero-Knowledge: server/file chỉ thấy bản mã, không bao giờ thấy password/key |
 | **Recovery Key** | 24 từ BIP39 English (2048 từ, ~264-bit entropy) + PBKDF2-600k; hiện 1 lần, xác nhận 3 từ, hỗ trợ tải Emergency Kit `.txt` | Quên pass vẫn tự khôi phục, không cần ai khác |
@@ -107,7 +93,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 ### 2. Hướng Dẫn Giải Nén
 1. Sau khi tải tệp `PasswordAdmin.zip`, nhấp chuột phải vào tệp và chọn **Extract All...** (hoặc sử dụng phần mềm 7-Zip / WinRAR chọn **Extract to PasswordAdmin**).
 2. Chọn thư mục lưu trữ thuận tiện trên máy tính (ví dụ: `D:\PasswordAdmin` hoặc `C:\Tools\PasswordAdmin`).
-3. Mở thư mục vừa giải nén, bạn sẽ thấy các tệp: `PasswordAdmin WebUI/index.html`, `Open_PasswordAdmin_Web.bat`, `crypto_bridge_server.exe`, `PasswordAdmin.exe`, `README.md`, v.v. (bản root `index.html` là biến thể dùng File System Access API, không phải entry-point chính).
+3. Mở thư mục vừa giải nén, bạn sẽ thấy các tệp: `PasswordAdmin WebUI/index.html`, `Open_PasswordAdmin_Web.bat`, `crypto_bridge_server.exe`, `README.md`, v.v. (bản root `index.html` là biến thể dùng File System Access API, không phải entry-point chính).
 
 ---
 
@@ -146,19 +132,6 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
 ---
 
-## 💻 Hướng Dẫn Vận Hành Bằng Dòng Lệnh CLI (TokenVector Native)
-Dành cho nhà phát triển muốn chạy CLI hoặc biên dịch lại bằng công cụ phát triển **[TokenVector SDK](https://github.com/nguyenhungtran18/TokenVector)**:
-
-```bash
-# Biên dịch AOT từ mã nguồn TokenVector ra tệp nhị phân native:
-tkvc.exe PasswordAdmin.tkv -o PasswordAdmin.exe
-
-# Chạy ứng dụng console:
-.\PasswordAdmin.exe
-```
-
----
-
 ## 📁 Cấu Trúc Dự Án (Project Structure)
 
 ```text
@@ -170,13 +143,8 @@ PasswordAdmin/
 │   └── Open_PasswordAdmin_Web.bat # 1-click: chạy server rồi mở Web UI (lưu ý: fix dấu `"` thừa ở cuối dòng start)
 ├── index.html                   # Biến thể Web UI dùng File System Access API (showSaveFilePicker, Chrome/Edge)
 ├── Open_PasswordAdmin_Web.bat   # 1-click mở bản Web UI chính + server (hiện đã đổi target sang PasswordAdmin WebUI/)
-├── crypto_bridge.py / .tkv / .exe         # Bridge HTTP GET /generate?length= (8–64) → gọi crypto_engine.exe
-├── crypto_engine.tkv / .exe / crypto_engine_new.exe # Engine sinh mật khẩu native
-├── PasswordAdmin.tkv / .exe (~30 KB)       # Điều phối chính + binary CLI
-├── token_vector_engine.tkv      # Module chỉ mục/tìm kiếm phía native (Web UI không dùng, Web UI lọc O(N))
-├── vault_repository.tkv         # Module lưu trữ két sắt phía native
-├── models.tkv / main.tkv / ui_desktop.tkv  # Thực thể dữ liệu & engine CLI
-├── vault.tkvdb                  # DB của bản CLI legacy (plaintext `App|user|pass`), KHÔNG phải DB của Web UI
+├── crypto_bridge.py / .exe                # Bridge HTTP GET /generate?length= (8–64) → gọi crypto_engine.exe
+├── crypto_engine.exe / crypto_engine_new.exe # Engine sinh mật khẩu native
 ├── LICENSE                      # Giấy phép MIT License
 └── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.2.0)
 ```
@@ -205,12 +173,11 @@ PasswordAdmin/
 
 ## 📜 Lịch Sử Phiên Bản (Version History)
 
-| Phiên bản | Công nghệ Core | Trạng thái | Điểm cải tiến chính |
+| Phiên bản | Nền tảng | Trạng thái | Điểm cải tiến chính |
 |:---|:---|:---|:---|
-| **v1.0.0** | TokenVector CLI | 📦 Legacy | Bản dựng ban đầu chạy trên console terminal với AOT compilation. |
-| **v2.0.0** | **TokenVector + Web UI** | 📦 Trước đây | Thêm Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
-| **v2.1.0** | **TokenVector + Web UI + Bridge** | 📦 Trước đây | Thêm **Đổi Master Password**, loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
-| **v2.2.0** | **TokenVector + Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục bằng gõ tay hoặc nạp file `.txt`, **tự xuất file khi kích hoạt**), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két, **không có chức năng xóa két**, **nút Help** hướng dẫn trong dashboard. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
+| **v2.0.0** | **Web UI** | 📦 Trước đây | Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
+| **v2.1.0** | **Web UI + Bridge** | 📦 Trước đây | Thêm **Đổi Master Password**, loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
+| **v2.2.0** | **Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục bằng gõ tay hoặc nạp file `.txt`, **tự xuất file khi kích hoạt**), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két, **không có chức năng xóa két**, **nút Help** hướng dẫn trong dashboard. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
 
 ---
 
@@ -225,5 +192,4 @@ Bản quyền (©) 2026 thuộc về **nguyenhungtran18**.
 ## 🤝 Đóng Góp & Hỗ Trợ (Support & Ecosystem)
 
 * **Báo cáo lỗi & Góp ý tính năng:** [GitHub Issues](https://github.com/nguyenhungtran18/PasswordAdmin/issues)
-* **Hệ sinh thái ngôn ngữ TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
 * **Tác giả:** [nguyenhungtran18](https://github.com/nguyenhungtran18)

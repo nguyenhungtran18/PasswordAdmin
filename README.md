@@ -111,10 +111,11 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`**. File này làm 2 việc: khởi động `crypto_bridge_server.exe --server 8765` rồi mở `PasswordAdmin WebUI/index.html`.
    - ⚠️ Không nhấp đúp trực tiếp `index.html` qua `file://` vì Web UI cần loopback server `127.0.0.1:8765` để đọc/ghi vault và sinh mật khẩu — mở chay sẽ báo "Không thể đọc DB" / "Crypto server chưa chạy". Giữ cửa sổ server luôn mở. Dùng Google Chrome hoặc Microsoft Edge mới nhất.
 
-2. **Khởi tạo Master Password (Mật khẩu chính bảo vệ két sắt):**
-   - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập mật khẩu chính muốn thiết lập vào ô *Master Password*.
-   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, mật khẩu bạn nhập trong lần khởi chạy đầu tiên này được dùng để **suy khóa AES-256-GCM qua PBKDF2-HMAC-SHA256 600.000 iterations với salt ngẫu nhiên 16 bytes** (không phải băm SHA-256 đơn, không lưu mật khẩu ở bất kỳ đâu) và trở thành **Master Key** bảo vệ toàn bộ cơ sở dữ liệu. Vui lòng ghi nhớ mật khẩu này!
-   - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính. Lần đầu chưa có DB, app sẽ tạo vault mới và seed 3 bản ghi demo.
+2. **Đăng nhập lần đầu — mật khẩu mặc định là `123456`:**
+   - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập `123456` vào ô *Master Password*.
+   - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính (DB đi kèm đã có sẵn 3 bản ghi demo).
+   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, Master Password được dùng để **suy khóa AES-256-GCM qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** theo bước 5 bên dưới!
+   - Trường hợp DB trống (xóa file vault / chạy bản root): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới.
 
 3. **Tạo tài khoản & mật khẩu đầu tiên:**
    - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
@@ -126,9 +127,10 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Tại dòng tài khoản vừa lưu, bấm biểu tượng **Copy**.
    - Mật khẩu sẽ được sao chép vào bộ nhớ đệm và **tự động bị xóa vĩnh viễn khỏi Clipboard sau 10 giây** để bảo vệ an toàn.
 
-5. **Đổi Master Password (khi cần):**
-   - Sau khi đã mở két, bấm biểu tượng **chìa khóa** trên header → nhập *mật khẩu hiện tại* → nhập *mật khẩu mới* (tối thiểu 8 ký tự, khuyến nghị 12–16) → xác nhận lại.
-   - App xác thực mật khẩu cũ bằng cách thử giải mã vault, sau đó sinh salt mới, suy khóa mới và **mã hóa lại toàn bộ vault, ghi đè DB mặc định**. Từ lần sau dùng mật khẩu mới để đăng nhập.
+5. **Đổi Master Password ngay trong app (bắt buộc sau lần đăng nhập đầu):**
+   - Sau khi đã mở két bằng `123456`, bấm biểu tượng **chìa khóa 🔑** trên thanh header (cạnh nút Khóa) để mở hộp thoại **"Đổi Master Password"**.
+   - Nhập *mật khẩu hiện tại* (`123456`) → nhập *mật khẩu mới* (tối thiểu 8 ký tự, khuyến nghị 12–16, có thước đo mạnh/yếu) → *xác nhận lại* → bấm **"Đổi Mật Khẩu"**.
+   - App xác thực mật khẩu cũ bằng cách thử giải mã vault, sau đó sinh salt 16 bytes mới, suy khóa mới bằng PBKDF2 và **mã hóa lại toàn bộ vault (AES-256-GCM), ghi đè DB mặc định**. Từ lần sau dùng mật khẩu mới để đăng nhập — nếu quên là mất dữ liệu.
 
 ---
 

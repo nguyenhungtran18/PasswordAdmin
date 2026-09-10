@@ -19,6 +19,8 @@
 [![Interface](https://img.shields.io/badge/Theme-Modern_Light_Mode-0f172a?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)
 
+> ⭐ **Yêu thích dự án?** Nếu bạn thấy **PasswordAdmin** hữu ích hoặc đã tải về dùng thử, hãy tặng dự án **1 sao ⭐ trên GitHub** để ủng hộ tác giả tiếp tục phát triển! 👉 [Star ngay](https://github.com/nguyenhungtran18/PasswordAdmin)
+
 ---
 
 ## ⚠️ Lưu Ý Quan Trọng (Security Disclaimer)
@@ -55,6 +57,14 @@
 7. **Đổi Mật Khẩu Đăng Nhập:** Đổi Master Password ngay trong Web UI mà không mất dữ liệu — DEK được bọc lại với salt mới và lưu đè lên DB mặc định (Recovery Key giữ nguyên).
 8. **Tạo Recovery Key & Tự Khôi Phục Khi Quên Mật Khẩu:** Tạo key 24 từ một lần (file `PasswordAdmin-Recovery-Key.txt` tự tải về khi kích hoạt, xoay key thì file mới cùng tên tự tải về đè lên), quên pass thì gõ tay hoặc **nạp file Emergency Kit (.txt)** ở màn hình khóa để tự đặt lại — không mất dữ liệu, app không bao giờ tự xóa két.
 9. **Nút Help Trong Dashboard:** Bấm dấu `?` trên header bất cứ lúc nào để mở popup hướng dẫn sử dụng tóm tắt (đăng nhập, tạo key, copy, recovery, sao lưu, 3 điều không được quên).
+
+---
+
+## 🔧 Core Engine: Ngôn Ngữ TokenVector
+
+Phần lõi native của **PasswordAdmin** (loopback server `crypto_bridge_server.exe` và engine sinh mật khẩu) được viết bằng **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)** — ngôn ngữ lập trình viết core engine của phần mềm này, biên dịch ra binary native gọn nhẹ, khởi động ngay mà không cần runtime cồng kềnh.
+
+🔗 **Tìm hiểu thêm về TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
 
 ---
 

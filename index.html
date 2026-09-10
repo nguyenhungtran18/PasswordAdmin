@@ -1,0 +1,2749 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenVector PasswordAdmin - Quản Lý Khóa & Mật Khẩu</title>
+  <!-- Tailwind CSS & Font Inter -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            border: '#e2e8f0',
+            background: '#f8fafc',
+            foreground: '#0f172a',
+            muted: '#f1f5f9',
+            'muted-foreground': '#64748b',
+            card: '#ffffff',
+            primary: {
+              DEFAULT: '#2563eb',
+              foreground: '#ffffff',
+              hover: '#1d4ed8'
+            },
+            accent: {
+              DEFAULT: '#4f46e5',
+              foreground: '#ffffff'
+            }
+          },
+          animation: {
+            'shimmer': 'shimmer 2.5s linear infinite',
+          },
+          keyframes: {
+            shimmer: {
+              from: { backgroundPosition: '0 0' },
+              to: { backgroundPosition: '-200% 0' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+    .glass-panel {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .shimmer-btn {
+      background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased custom-scrollbar">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- Master Password Lock Screen Modal -->
+  <div id="lock-modal" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl border border-slate-200 text-center space-y-6">
+      <div class="inline-flex p-4 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+        <i data-lucide="shield-check" class="w-10 h-10"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight" data-i18n="lock_title">Két Sắt Mật Khẩu (Vault)</h2>
+        <p class="text-xs text-slate-500 mt-2 leading-relaxed" data-i18n="lock_desc">
+          DB mặc định được ứng dụng tự quản lý và chỉ mở được bằng Master Password.
+        </p>
+      </div>
+
+      <form id="vault-auth-form" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Master Password</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="master-password-input" 
+              class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm caret-blue-600 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-mono"
+              data-i18n-ph="lock_master_ph" placeholder="Nhập mật khẩu chính..."
+              required
+              autofocus
+            />
+            <button 
+              type="button" 
+              onclick="togglePasswordVisibility('master-password-input', this)"
+              class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          id="unlock-submit-btn"
+          class="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+        >
+          <i data-lucide="unlock" class="w-4 h-4"></i>
+          <span data-i18n="lock_unlock">Mở Khóa Cơ Sở Dữ Liệu</span>
+        </button>
+      </form>
+      <button
+        type="button"
+        onclick="openRecoveryModal()"
+        class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-all"
+        data-i18n="lock_forgot"
+      >
+        Quên mật khẩu? Khôi phục bằng Recovery Key
+      </button>
+      <div class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-600"></i>
+        <span data-i18n="lock_footer">DB mặc định nằm cùng thư mục với Web UI.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Dashboard -->
+  <div id="app-container" class="min-h-screen flex flex-col hidden">
+    <!-- Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-extrabold text-slate-900 tracking-tight">PasswordAdmin</h1>
+              <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">v2.2 Web</span>
+            </div>
+            <p class="text-[11px] text-slate-500 hidden sm:block" data-i18n="hdr_sub">Quản lý cơ sở dữ liệu tài khoản & Khóa bảo mật</p>
+            <p class="text-[10px] text-slate-400 hidden sm:block">Creator and Owner: Trần Nguyên Hùng</p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2.5">
+          <button 
+            onclick="openCreateModal()" 
+            class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span data-i18n="hdr_create">Tạo Key Mới</span>
+          </button>
+
+          <button 
+            onclick="exportDatabase()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all" 
+            data-i18n-title="hdr_export_title" title="Xuất Database JSON"
+          >
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+
+          <button 
+            onclick="document.getElementById('import-file-input').click()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all" 
+            data-i18n-title="hdr_import_title" title="Nhập Database JSON"
+          >
+            <i data-lucide="upload" class="w-4 h-4"></i>
+          </button>
+          <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importDatabase(event)" />
+
+          <button
+            onclick="openChangePasswordModal()"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all"
+            data-i18n-title="hdr_changepwd_title" title="Đổi Master Password (mật khẩu đăng nhập)"
+          >
+            <i data-lucide="key-round" class="w-4 h-4"></i>
+          </button>
+
+          <button
+            onclick="openSecurityModal()"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-all"
+            data-i18n-title="hdr_security_title" title="Khôi phục & bảo mật (Recovery Key, nhật ký)"
+          >
+            <i data-lucide="life-buoy" class="w-4 h-4"></i>
+          </button>
+
+          <button
+            onclick="openHelpModal()"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all"
+            data-i18n-title="hdr_help_title" title="Hướng dẫn sử dụng"
+          >
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+          </button>
+
+          <button
+            onclick="toggleLang()"
+            class="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all text-xs font-bold font-mono"
+            data-i18n-title="hdr_lang_title"
+            title="Chuyển ngôn ngữ / Switch language"
+          >
+            <span id="lang-label">EN</span>
+          </button>
+
+          <button 
+            onclick="lockVault()" 
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all" 
+            data-i18n-title="hdr_lock_title" title="Khóa Két Sắt"
+          >
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
+
+      <!-- Recovery Banner (hiện khi két chưa có Recovery Key) -->
+      <div id="recovery-banner" class="hidden p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-start gap-2.5">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+          <p class="text-xs text-amber-900 leading-relaxed" data-i18n-html="banner_html">
+            <span class="font-bold">Két chưa có Recovery Key.</span>
+            Nếu quên Master Password lúc này, dữ liệu sẽ mất vĩnh viễn. Hãy tạo Recovery Key ngay.
+          </p>
+        </div>
+        <button onclick="openRecoverySetupModal()" data-i18n="banner_btn" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all">Tạo Recovery Key</button>
+      </div>
+
+      <!-- Metrics Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Stat 1 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500" data-i18n="stat_total">Tổng Tài Khoản / Key</p>
+            <h3 id="stat-total" class="text-2xl font-extrabold mt-1 text-slate-900">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
+            <i data-lucide="key" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 2 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500" data-i18n="stat_strong">Mật Khẩu Cực Mạnh</p>
+            <h3 id="stat-strong" class="text-2xl font-extrabold mt-1 text-emerald-600">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 3 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500" data-i18n="stat_weak">Cần Nâng Cấp (Yếu)</p>
+            <h3 id="stat-weak" class="text-2xl font-extrabold mt-1 text-amber-600">0</h3>
+          </div>
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-600">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <!-- Stat 4 -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500" data-i18n="stat_clip">Clipboard Bảo Mật</p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="text-xs font-mono font-bold text-emerald-600">Auto-Purge</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono border border-slate-200">10s</span>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-purple-50 border border-purple-100 text-purple-600">
+            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database Control & Search Toolbar -->
+      <div class="glass-panel p-5 rounded-2xl border border-slate-200 space-y-4">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span data-i18n="db_title">Cơ Sở Dữ Liệu Mật Khẩu</span>
+              <span id="records-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-bold border border-slate-200">0 bản ghi</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5" data-i18n="db_sub">Tìm kiếm đa trường theo Tên Ứng Dụng (App) và Tên Người Dùng (User)</p>
+          </div>
+
+          <!-- Dual Field Search Controls -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <!-- Search App -->
+            <div class="relative flex-1 sm:w-56">
+              <i data-lucide="layout-grid" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="search-app" 
+                data-i18n-ph="search_app_ph" placeholder="Tìm theo Tên App..." 
+                oninput="handleSearch()"
+                class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+
+            <!-- Search User -->
+            <div class="relative flex-1 sm:w-56">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="search-user" 
+                data-i18n-ph="search_user_ph" placeholder="Tìm theo Tên User..." 
+                oninput="handleSearch()"
+                class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+
+            <!-- Reset Filter -->
+            <button 
+              onclick="resetSearch()" 
+              class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs text-slate-700 hover:text-slate-900 font-semibold transition-all shrink-0"
+              data-i18n-title="reset_filter_title" title="Xóa bộ lọc"
+              data-i18n="reset_filter">
+              Làm mới
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced DataTable View -->
+      <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold tracking-wider text-[11px] select-none">
+                <th class="py-3.5 px-4" data-i18n="th_app">Ứng Dụng / Dịch Vụ</th>
+                <th class="py-3.5 px-4" data-i18n="th_user">Tên User / Email</th>
+                <th class="py-3.5 px-4" data-i18n="th_pass">Mật Khẩu (Key)</th>
+                <th class="py-3.5 px-4" data-i18n="th_strength">Độ An Toàn</th>
+                <th class="py-3.5 px-4" data-i18n="th_category">Phân Loại</th>
+                <th class="py-3.5 px-4 text-right" data-i18n="th_actions">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="credential-table-body" class="divide-y divide-slate-200 bg-white">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden py-16 px-4 text-center space-y-3 bg-white">
+          <div class="inline-flex p-4 rounded-full bg-slate-100 border border-slate-200 text-slate-400">
+            <i data-lucide="search-x" class="w-8 h-8"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-900" data-i18n="empty_title">Không tìm thấy bản ghi nào</h4>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto" data-i18n="empty_desc">
+            Không có thông tin khớp với tiêu chí tìm kiếm hoặc cơ sở dữ liệu đang trống. Hãy nhấn "Tạo Key Mới" để bắt đầu!
+          </p>
+          <button 
+            onclick="openCreateModal()" 
+            class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span data-i18n="empty_add">Thêm Bản Ghi Mới</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Tạo / Chỉnh sửa Key (App + User trước, Key sau) -->
+  <div id="credential-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-title" class="text-lg font-bold text-slate-900" data-i18n="cred_title_new">Tạo Key & Mật Khẩu Mới</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="cred_sub">Bước 1: Khai báo App & User ➔ Bước 2: Tạo Key</p>
+          </div>
+        </div>
+        <button onclick="closeCredentialModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Credential Form -->
+      <form id="credential-form" onsubmit="saveCredential(event)" class="space-y-4">
+        <input type="hidden" id="entry-id" value="" />
+
+        <!-- GIAI ĐOẠN 1: KHAI BÁO THÔNG TIN BẮT BUỘC (APP + USER) -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5">
+          <div class="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+            <span class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[10px]">1</span>
+            <span data-i18n="step1_label">Thông Tin Tài Khoản Bắt Buộc</span>
+          </div>
+
+          <!-- Trường 1: Tên App -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">
+              <span data-i18n="f_app">Tên Ứng Dụng / Dịch Vụ</span> <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <i data-lucide="globe" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="entry-app" 
+                required 
+                data-i18n-ph="f_app_ph" placeholder="vd: Google, GitHub, Binance, AWS, Facebook..." 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+          </div>
+
+          <!-- Trường 2: Tên User -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">
+              <span data-i18n="f_user">Tên Người Dùng / Email / Username</span> <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="entry-user" 
+                required 
+                data-i18n-ph="f_user_ph" placeholder="vd: admin@gmail.com, satoshi_nakamoto, dev_ops..." 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+          </div>
+
+          <!-- Category Selection -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="f_category">Phân Loại Dịch Vụ</label>
+            <select 
+              id="entry-category" 
+              class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+            >
+              <option value="Công việc">💼 Công việc / Doanh nghiệp</option>
+              <option value="Cá nhân">👤 Cá nhân / Email</option>
+              <option value="Tài chính">💰 Tài chính / Crypto / Ngân hàng</option>
+              <option value="Mạng xã hội">🌐 Mạng xã hội / Giải trí</option>
+              <option value="Server / Cloud">☁️ Server / Cloud / Infrastructure</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- GIAI ĐOẠN 2: TẠO VÀ CẤU HÌNH KEY (PASSWORD GENERATOR / INPUT) -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
+              <span class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px]">2</span>
+              <span data-i18n="step2_label">Tạo Mật Khẩu (Key)</span>
+            </div>
+
+            <button 
+              type="button" 
+              onclick="generateCSPRNGPassword()" 
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-200 transition-all"
+            >
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span data-i18n="gen_btn">Tạo Ngẫu Nhiên (CSPRNG)</span>
+            </button>
+          </div>
+
+          <!-- Password Field -->
+          <div class="relative">
+            <input 
+              type="text" 
+              id="entry-password" 
+              required 
+              data-i18n-ph="entry_pass_ph" placeholder="Nhập hoặc tạo mật khẩu an toàn..." 
+              oninput="evaluatePasswordStrength(this.value)"
+              class="w-full pl-3 pr-10 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            />
+            <button 
+              type="button" 
+              onclick="copyQuickPassword(document.getElementById('entry-password').value)" 
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
+              data-i18n-title="copy_quick_title" title="Sao chép nhanh"
+            >
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Strength Bar & Entropy -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-500" data-i18n="sec_label">Độ bảo mật:</span>
+              <span id="strength-label" class="font-bold text-slate-500" data-i18n="strength_none">Chưa nhập</span>
+            </div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div id="strength-bar" class="h-full w-0 transition-all duration-300 bg-slate-400 rounded-full"></div>
+            </div>
+            <div class="text-[10px] text-slate-500 flex justify-between pt-0.5 font-mono">
+              <span id="entropy-text">Entropy: 0 bits</span>
+              <span id="crack-time-text">Thời gian crack: Tức thì</span>
+            </div>
+          </div>
+
+          <!-- CSPRNG Configuration Options -->
+          <div class="pt-2 border-t border-slate-200 space-y-2.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600" data-i18n="gen_len">Độ dài ký tự:</span>
+              <span id="length-val" class="font-mono font-bold text-slate-900">20</span>
+            </div>
+            <input 
+              type="range" 
+              id="gen-length" 
+              min="10" 
+              max="64" 
+              value="20" 
+              oninput="document.getElementById('length-val').innerText = this.value; generateCSPRNGPassword();"
+              class="w-full accent-blue-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+            />
+
+            <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+              <label class="flex items-center gap-2 text-slate-600 cursor-pointer font-medium">
+                <input type="checkbox" id="gen-symbols" checked onchange="generateCSPRNGPassword()" class="rounded border-slate-300 text-blue-600 focus:ring-0">
+                <span data-i18n="gen_symbols">Ký tự đặc biệt (!@#$)</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-600 cursor-pointer font-medium">
+                <input type="checkbox" id="gen-numbers" checked onchange="generateCSPRNGPassword()" class="rounded border-slate-300 text-blue-600 focus:ring-0">
+                <span data-i18n="gen_numbers">Chữ số (0-9)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button 
+            type="button" 
+            onclick="closeCredentialModal()" 
+            class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
+          >
+data-i18n="btn_cancel">
+            Hủy
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-1.5"
+          >
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span data-i18n="btn_save_db">Lưu Vào Database</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Đổi Master Password (mật khẩu đăng nhập / mở két) -->
+  <div id="change-password-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900" data-i18n="chg_title">Đổi Master Password</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="chg_sub">Đổi mật khẩu đăng nhập / mở két sắt</p>
+          </div>
+        </div>
+        <button onclick="closeChangePasswordModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="change-password-form" onsubmit="changeMasterPassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="chg_old">Mật khẩu hiện tại</span> <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input type="password" id="old-master-password" required data-i18n-ph="chg_old_ph" placeholder="Nhập Master Password hiện tại..."
+              class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+            <button type="button" onclick="togglePasswordVisibility('old-master-password', this)"
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5" data-i18n-title="showhide_title" title="Hiện/ẩn">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="chg_new">Mật khẩu mới (tối thiểu 8 ký tự)</span> <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input type="password" id="new-master-password" required minlength="8" data-i18n-ph="chg_new_ph" placeholder="Nhập Master Password mới..."
+              oninput="evaluateMasterStrength(this.value)"
+              class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+            <button type="button" onclick="togglePasswordVisibility('new-master-password', this)"
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5" data-i18n-title="showhide_title" title="Hiện/ẩn">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="mt-2 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-500" data-i18n="master_sec_label">Độ mạnh:</span>
+              <span id="master-strength-label" class="font-bold text-slate-400" data-i18n="master_none">Chưa nhập</span>
+            </div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div id="master-strength-bar" class="h-full w-0 transition-all duration-300 bg-slate-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="chg_confirm">Xác nhận mật khẩu mới</span> <span class="text-red-500">*</span></label>
+          <input type="password" id="confirm-master-password" required minlength="8" data-i18n-ph="chg_confirm_ph" placeholder="Nhập lại Master Password mới..."
+            class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-i18n="chg_note">
+          Sau khi đổi, khóa két (DEK) sẽ được bọc lại bằng mật khẩu mới (salt mới + AES-256-GCM) và lưu đè lên DB mặc định. Recovery Key (nếu đã tạo) vẫn giữ nguyên.
+          Nếu quên cả mật khẩu mới lẫn Recovery Key, dữ liệu không thể khôi phục (mã hóa phía máy khách).
+        </p>
+        <div class="flex items-center justify-end gap-2.5 pt-1">
+          <button type="button" onclick="closeChangePasswordModal()"
+            class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all"data-i18n="btn_cancel">Hủy</button>
+          <button type="submit" id="change-password-submit"
+            class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span data-i18n="chg_submit">Đổi Mật Khẩu</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Khôi phục & bảo mật (Recovery Key, nhật ký) -->
+  <div id="security-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <i data-lucide="life-buoy" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900" data-i18n="sec_title">Khôi phục & Bảo mật</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="sec_sub">Ai giữ Recovery Key thì người đó mở được két</p>
+          </div>
+        </div>
+        <button onclick="closeSecurityModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500" data-i18n="sec_vault_fmt">Định dạng vault:</span>
+          <span id="security-vault-version" class="font-mono font-bold text-slate-900">—</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500" data-i18n="sec_rec">Recovery Key:</span>
+          <span id="security-recovery-status" class="font-bold text-slate-500">—</span>
+        </div>
+      </div>
+
+      <button onclick="closeSecurityModal(); openRecoverySetupModal();"
+        class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+        <i data-lucide="key-round" class="w-4 h-4"></i>
+        <span id="security-recovery-btn-label" data-i18n="sec_rec_btn_new">Tạo Recovery Key (24 từ)</span>
+      </button>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider" data-i18n="sec_audit">Nhật ký bảo mật</h4>
+          <button onclick="clearAuditLog()" data-i18n="sec_audit_clear" class="text-[11px] text-slate-400 hover:text-red-600 transition-colors">Xóa log</button>
+        </div>
+        <div id="audit-log-list" class="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5 text-[11px] font-mono"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Tạo / Xoay Recovery Key (hiện 24 từ đúng 1 lần) -->
+  <div id="recovery-setup-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <i data-lucide="life-buoy" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900" data-i18n="rec_setup_title">Recovery Key (24 từ)</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="rec_setup_sub">Chìa khóa dự phòng khi quên Master Password</p>
+          </div>
+        </div>
+        <button onclick="closeRecoverySetupModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Bước 1: hiển thị key -->
+      <div id="recovery-setup-step1" class="space-y-4">
+        <p class="text-[11px] text-slate-600 leading-relaxed bg-red-50 border border-red-200 rounded-xl px-3 py-2" data-i18n-html="rec_warn_html">
+          <span class="font-bold text-red-700">Ghi ra giấy và cất offline ngay.</span>
+          Ai có 24 từ này đều mở được két của bạn. Không chụp màn hình, không lưu lên cloud/email. Key chỉ hiện <span class="font-bold">đúng 1 lần</span>.
+        </p>
+        <div id="recovery-words-grid" class="grid grid-cols-3 gap-1.5 font-mono text-[11px]"></div>
+        <div class="flex gap-2">
+          <button onclick="copyRecoveryWords()" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="copy" class="w-4 h-4"></i><span data-i18n="rec_copy">Sao chép</span>
+          </button>
+          <button onclick="downloadRecoveryWords()" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4"></i><span data-i18n="rec_download">Tải file .txt</span>
+          </button>
+        </div>
+        <button onclick="recoverySetupGoStep2()" data-i18n="rec_saved_next" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all">Tôi đã lưu xong, tiếp tục</button>
+      </div>
+
+      <!-- Bước 2: xác nhận đã lưu -->
+      <div id="recovery-setup-step2" class="hidden space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed" data-i18n="rec_confirm_intro">Nhập lại các từ ở vị trí sau để chứng minh bạn đã lưu key:</p>
+        <div id="recovery-confirm-fields" class="space-y-2.5"></div>
+        <div class="flex items-center justify-end gap-2.5">
+          <button onclick="recoverySetupGoStep1()" data-i18n="rec_back" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all">Quay lại</button>
+          <button onclick="confirmRecoverySetup()" id="recovery-setup-confirm-btn" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i><span data-i18n="rec_activate">Kích hoạt Recovery Key</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quên mật khẩu — khôi phục bằng Recovery Key (màn hình khóa) -->
+  <div id="recovery-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <i data-lucide="life-buoy" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900" data-i18n="rec_title">Khôi phục truy cập</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="rec_sub">Dùng Recovery Key 24 từ để đặt mật khẩu mới</p>
+          </div>
+        </div>
+        <button onclick="closeRecoveryModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Bước 1: nhập key -->
+      <div id="recovery-step1" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="rec_input_label">Recovery Key (24 từ, cách nhau bằng dấu cách)</span> <span class="text-red-500">*</span></label>
+          <textarea id="recovery-words-input" rows="3" data-i18n-ph="rec_input_ph" placeholder="vd: abandon ability able …"
+            class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"></textarea>
+        </div>
+        <button onclick="verifyRecoveryKey()" id="recovery-verify-btn" data-i18n="rec_verify" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all">Xác minh Recovery Key</button>
+        <div class="flex items-center gap-2 text-[11px] text-slate-400">
+          <span class="flex-1 h-px bg-slate-200"></span><span data-i18n="rec_or">hoặc</span><span class="flex-1 h-px bg-slate-200"></span>
+        </div>
+        <button type="button" onclick="document.getElementById('recovery-kit-input').click()"
+          class="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all flex items-center justify-center gap-1.5">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span data-i18n="rec_kit_btn">Nạp file Emergency Kit (.txt) — khỏi cần gõ tay</span>
+        </button>
+        <input type="file" id="recovery-kit-input" class="hidden" accept=".txt,.text,text/plain" onchange="importRecoveryKit(event)" />
+        <p class="text-[11px] text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-xl px-3 py-2" data-i18n="rec_nokey_note">Mất cả mật khẩu lẫn Recovery Key? Dữ liệu trong két được giữ nguyên (app không bao giờ tự xóa) nhưng không ai mở được nữa — kể cả tác giả. Hãy tìm lại tờ key/file đã lưu.</p>
+      </div>
+
+      <!-- Bước 2: đặt mật khẩu mới -->
+      <form id="recovery-step2" class="hidden space-y-4" onsubmit="finishRecovery(event)">
+        <p class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 font-semibold" data-i18n="rec_ok_note">Recovery Key đúng. Đặt Master Password mới cho két:</p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="rec_new">Mật khẩu mới (tối thiểu 8 ký tự)</span> <span class="text-red-500">*</span></label>
+          <input type="password" id="recovery-new-password" required minlength="8"
+            class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="rec_confirm">Xác nhận mật khẩu mới</span> <span class="text-red-500">*</span></label>
+          <input type="password" id="recovery-confirm-password" required minlength="8"
+            class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600" />
+        </div>
+        <button type="submit" id="recovery-finish-btn" data-i18n="rec_finish" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all">Đặt mật khẩu mới & Mở két</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Hướng dẫn sử dụng -->
+  <div id="help-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <i data-lucide="help-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900" data-i18n="help_title">Hướng dẫn sử dụng</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="help_sub">PasswordAdmin — két mật khẩu cục bộ (mã hóa phía máy khách)</p>
+          </div>
+        </div>
+        <button onclick="closeHelpModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs text-slate-600 leading-relaxed">
+        <div data-i18n-html="help_b1">
+          <p class="font-bold text-slate-900 mb-1">1. Đăng nhập & đổi mật khẩu mặc định</p>
+          <p>Mật khẩu mặc định ban đầu là <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Vào app rồi bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16).</p>
+        </div>
+        <div data-i18n-html="help_b2">
+          <p class="font-bold text-slate-900 mb-1">2. Tạo Key mới (đúng quy trình 2 bước)</p>
+          <p>Bấm <span class="font-semibold">Tạo Key Mới</span> → <span class="font-semibold">Bước 1:</span> nhập Tên App + Tên User (bắt buộc) → <span class="font-semibold">Bước 2:</span> bấm "Tạo Ngẫu Nhiên" hoặc tự nhập mật khẩu (kéo thanh trượt 10–64 ký tự, bật/tắt ký tự đặc biệt) → Lưu.</p>
+        </div>
+        <div data-i18n-html="help_b3">
+          <p class="font-bold text-slate-900 mb-1">3. Tìm kiếm, xem, sao chép</p>
+          <p>Tìm độc lập/kết hợp theo Tên App + Tên User. Bấm <span class="font-semibold">con mắt</span> để hiện/ẩn mật khẩu, bấm <span class="font-semibold">Copy</span> để sao chép — clipboard <span class="font-semibold">tự xóa sau 10 giây</span>. Bút chì = sửa, thùng rác = xóa bản ghi.</p>
+        </div>
+        <div data-i18n-html="help_b4">
+          <p class="font-bold text-slate-900 mb-1">4. Recovery Key — chìa dự phòng khi quên mật khẩu</p>
+          <p>Bấm nút <span class="font-semibold">phao 🛟</span> → Tạo Recovery Key (24 từ, hiện đúng 1 lần: ghi giấy + file <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> tự tải về). Quên mật khẩu thì ở màn hình khóa bấm <span class="font-semibold">"Quên mật khẩu?"</span> → gõ 24 từ hoặc <span class="font-semibold">nạp file .txt</span> → đặt mật khẩu mới, dữ liệu nguyên vẹn.</p>
+        </div>
+        <div data-i18n-html="help_b5">
+          <p class="font-bold text-slate-900 mb-1">5. Sao lưu & nhật ký</p>
+          <p>Nút <span class="font-semibold">tải xuống/tải lên</span>: xuất vault mã hóa ra JSON và nhập lại (file khác mật khẩu sẽ được hỏi riêng). Nút 🛟 cũng xem được <span class="font-semibold">nhật ký bảo mật</span> (ai mở két, đổi pass, khôi phục…). Sai quá 5 lần bị khóa 60 giây.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-i18n-html="help_warn">
+          <p class="font-bold text-amber-800 mb-1">⚠️ 3 điều không được quên</p>
+          <p class="text-amber-900">Ai giữ Recovery Key thì người đó mở được két — cất như chìa khóa nhà. Mất cả mật khẩu lẫn key thì không ai cứu được (app cũng <span class="font-semibold">không bao giờ tự xóa két</span> của bạn). Rời máy thì bấm <span class="font-semibold">ổ khóa 🔒</span> để khóa két.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-side Cryptography, State & UI Logic -->
+  <script>
+    // State Management
+    let credentials = [];
+    let vaultDEK = null;          // Data Encryption Key (chỉ tồn tại trong RAM khi đã mở két)
+    let vaultSaltPwd = null;      // salt bọc DEK bằng Master Password
+    let vaultWrapPwd = null;      // {iv, data} — DEK bọc bằng Master Password
+    let vaultSaltRec = null;      // salt bọc DEK bằng Recovery Key
+    let vaultWrapRec = null;      // {iv, data} — DEK bọc bằng Recovery Key (null = chưa thiết lập)
+    let currentMasterPassword = null;
+    let pendingMigratedRecords = null; // bản ghi chờ migrate v1 -> v2 sau khi mở két
+    let pendingRecoveryWords = null;   // 24 từ đang tạo (RAM only, hiện đúng 1 lần)
+    let pendingRecoveryDEK = null;     // DEK đã mở bằng Recovery Key, chờ đặt pass mới
+    let pendingRecoverySaltRec = null;
+    let pendingRecoveryWrapRec = null;
+    let recoveryConfirmIndexes = [];
+    const VAULT_SERVER_URL = 'http://127.0.0.1:8765';
+    const VAULT_KDF_ITERATIONS = 600000;
+    const RECOVERY_WORD_COUNT = 24;
+    const MAX_AUTH_FAILS = 5;
+    const LOCKOUT_MS = 60000;
+    const AUDIT_KEY = 'PA_AUDIT_LOG_V1';
+    const AUTH_FAIL_KEY = 'PA_AUTH_FAILS_V1';
+    let isUnlocked = false;
+    let revealedKeys = new Set();
+    let clipboardTimer = null;
+
+    // BIP39 English wordlist (2048 từ) — dùng sinh Recovery Key 24 từ
+    const BIP39_WORDS = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent", "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album", "alcohol", "alert", "alien", "all", "alley", "allow", "almost", "alone", "alpha", "already", "also", "alter", "always", "amateur", "amazing", "among", "amount", "amused", "analyst", "anchor", "ancient", "anger", "angle", "angry", "animal", "ankle", "announce", "annual", "another", "answer", "antenna", "antique", "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april", "arch", "arctic", "area", "arena", "argue", "arm", "armed", "armor", "army", "around", "arrange", "arrest", "arrive", "arrow", "art", "artefact", "artist", "artwork", "ask", "aspect", "assault", "asset", "assist", "assume", "asthma", "athlete", "atom", "attack", "attend", "attitude", "attract", "auction", "audit", "august", "aunt", "author", "auto", "autumn", "average", "avocado", "avoid", "awake", "aware", "away", "awesome", "awful", "awkward", "axis", "baby", "bachelor", "bacon", "badge", "bag", "balance", "balcony", "ball", "bamboo", "banana", "banner", "bar", "barely", "bargain", "barrel", "base", "basic", "basket", "battle", "beach", "bean", "beauty", "because", "become", "beef", "before", "begin", "behave", "behind", "believe", "below", "belt", "bench", "benefit", "best", "betray", "better", "between", "beyond", "bicycle", "bid", "bike", "bind", "biology", "bird", "birth", "bitter", "black", "blade", "blame", "blanket", "blast", "bleak", "bless", "blind", "blood", "blossom", "blouse", "blue", "blur", "blush", "board", "boat", "body", "boil", "bomb", "bone", "bonus", "book", "boost", "border", "boring", "borrow", "boss", "bottom", "bounce", "box", "boy", "bracket", "brain", "brand", "brass", "brave", "bread", "breeze", "brick", "bridge", "brief", "bright", "bring", "brisk", "broccoli", "broken", "bronze", "broom", "brother", "brown", "brush", "bubble", "buddy", "budget", "buffalo", "build", "bulb", "bulk", "bullet", "bundle", "bunker", "burden", "burger", "burst", "bus", "business", "busy", "butter", "buyer", "buzz", "cabbage", "cabin", "cable", "cactus", "cage", "cake", "call", "calm", "camera", "camp", "can", "canal", "cancel", "candy", "cannon", "canoe", "canvas", "canyon", "capable", "capital", "captain", "car", "carbon", "card", "cargo", "carpet", "carry", "cart", "case", "cash", "casino", "castle", "casual", "cat", "catalog", "catch", "category", "cattle", "caught", "cause", "caution", "cave", "ceiling", "celery", "cement", "census", "century", "cereal", "certain", "chair", "chalk", "champion", "change", "chaos", "chapter", "charge", "chase", "chat", "cheap", "check", "cheese", "chef", "cherry", "chest", "chicken", "chief", "child", "chimney", "choice", "choose", "chronic", "chuckle", "chunk", "churn", "cigar", "cinnamon", "circle", "citizen", "city", "civil", "claim", "clap", "clarify", "claw", "clay", "clean", "clerk", "clever", "click", "client", "cliff", "climb", "clinic", "clip", "clock", "clog", "close", "cloth", "cloud", "clown", "club", "clump", "cluster", "clutch", "coach", "coast", "coconut", "code", "coffee", "coil", "coin", "collect", "color", "column", "combine", "come", "comfort", "comic", "common", "company", "concert", "conduct", "confirm", "congress", "connect", "consider", "control", "convince", "cook", "cool", "copper", "copy", "coral", "core", "corn", "correct", "cost", "cotton", "couch", "country", "couple", "course", "cousin", "cover", "coyote", "crack", "cradle", "craft", "cram", "crane", "crash", "crater", "crawl", "crazy", "cream", "credit", "creek", "crew", "cricket", "crime", "crisp", "critic", "crop", "cross", "crouch", "crowd", "crucial", "cruel", "cruise", "crumble", "crunch", "crush", "cry", "crystal", "cube", "culture", "cup", "cupboard", "curious", "current", "curtain", "curve", "cushion", "custom", "cute", "cycle", "dad", "damage", "damp", "dance", "danger", "daring", "dash", "daughter", "dawn", "day", "deal", "debate", "debris", "decade", "december", "decide", "decline", "decorate", "decrease", "deer", "defense", "define", "defy", "degree", "delay", "deliver", "demand", "demise", "denial", "dentist", "deny", "depart", "depend", "deposit", "depth", "deputy", "derive", "describe", "desert", "design", "desk", "despair", "destroy", "detail", "detect", "develop", "device", "devote", "diagram", "dial", "diamond", "diary", "dice", "diesel", "diet", "differ", "digital", "dignity", "dilemma", "dinner", "dinosaur", "direct", "dirt", "disagree", "discover", "disease", "dish", "dismiss", "disorder", "display", "distance", "divert", "divide", "divorce", "dizzy", "doctor", "document", "dog", "doll", "dolphin", "domain", "donate", "donkey", "donor", "door", "dose", "double", "dove", "draft", "dragon", "drama", "drastic", "draw", "dream", "dress", "drift", "drill", "drink", "drip", "drive", "drop", "drum", "dry", "duck", "dumb", "dune", "during", "dust", "dutch", "duty", "dwarf", "dynamic", "eager", "eagle", "early", "earn", "earth", "easily", "east", "easy", "echo", "ecology", "economy", "edge", "edit", "educate", "effort", "egg", "eight", "either", "elbow", "elder", "electric", "elegant", "element", "elephant", "elevator", "elite", "else", "embark", "embody", "embrace", "emerge", "emotion", "employ", "empower", "empty", "enable", "enact", "end", "endless", "endorse", "enemy", "energy", "enforce", "engage", "engine", "enhance", "enjoy", "enlist", "enough", "enrich", "enroll", "ensure", "enter", "entire", "entry", "envelope", "episode", "equal", "equip", "era", "erase", "erode", "erosion", "error", "erupt", "escape", "essay", "essence", "estate", "eternal", "ethics", "evidence", "evil", "evoke", "evolve", "exact", "example", "excess", "exchange", "excite", "exclude", "excuse", "execute", "exercise", "exhaust", "exhibit", "exile", "exist", "exit", "exotic", "expand", "expect", "expire", "explain", "expose", "express", "extend", "extra", "eye", "eyebrow", "fabric", "face", "faculty", "fade", "faint", "faith", "fall", "false", "fame", "family", "famous", "fan", "fancy", "fantasy", "farm", "fashion", "fat", "fatal", "father", "fatigue", "fault", "favorite", "feature", "february", "federal", "fee", "feed", "feel", "female", "fence", "festival", "fetch", "fever", "few", "fiber", "fiction", "field", "figure", "file", "film", "filter", "final", "find", "fine", "finger", "finish", "fire", "firm", "first", "fiscal", "fish", "fit", "fitness", "fix", "flag", "flame", "flash", "flat", "flavor", "flee", "flight", "flip", "float", "flock", "floor", "flower", "fluid", "flush", "fly", "foam", "focus", "fog", "foil", "fold", "follow", "food", "foot", "force", "forest", "forget", "fork", "fortune", "forum", "forward", "fossil", "foster", "found", "fox", "fragile", "frame", "frequent", "fresh", "friend", "fringe", "frog", "front", "frost", "frown", "frozen", "fruit", "fuel", "fun", "funny", "furnace", "fury", "future", "gadget", "gain", "galaxy", "gallery", "game", "gap", "garage", "garbage", "garden", "garlic", "garment", "gas", "gasp", "gate", "gather", "gauge", "gaze", "general", "genius", "genre", "gentle", "genuine", "gesture", "ghost", "giant", "gift", "giggle", "ginger", "giraffe", "girl", "give", "glad", "glance", "glare", "glass", "glide", "glimpse", "globe", "gloom", "glory", "glove", "glow", "glue", "goat", "goddess", "gold", "good", "goose", "gorilla", "gospel", "gossip", "govern", "gown", "grab", "grace", "grain", "grant", "grape", "grass", "gravity", "great", "green", "grid", "grief", "grit", "grocery", "group", "grow", "grunt", "guard", "guess", "guide", "guilt", "guitar", "gun", "gym", "habit", "hair", "half", "hammer", "hamster", "hand", "happy", "harbor", "hard", "harsh", "harvest", "hat", "have", "hawk", "hazard", "head", "health", "heart", "heavy", "hedgehog", "height", "hello", "helmet", "help", "hen", "hero", "hidden", "high", "hill", "hint", "hip", "hire", "history", "hobby", "hockey", "hold", "hole", "holiday", "hollow", "home", "honey", "hood", "hope", "horn", "horror", "horse", "hospital", "host", "hotel", "hour", "hover", "hub", "huge", "human", "humble", "humor", "hundred", "hungry", "hunt", "hurdle", "hurry", "hurt", "husband", "hybrid", "ice", "icon", "idea", "identify", "idle", "ignore", "ill", "illegal", "illness", "image", "imitate", "immense", "immune", "impact", "impose", "improve", "impulse", "inch", "include", "income", "increase", "index", "indicate", "indoor", "industry", "infant", "inflict", "inform", "inhale", "inherit", "initial", "inject", "injury", "inmate", "inner", "innocent", "input", "inquiry", "insane", "insect", "inside", "inspire", "install", "intact", "interest", "into", "invest", "invite", "involve", "iron", "island", "isolate", "issue", "item", "ivory", "jacket", "jaguar", "jar", "jazz", "jealous", "jeans", "jelly", "jewel", "job", "join", "joke", "journey", "joy", "judge", "juice", "jump", "jungle", "junior", "junk", "just", "kangaroo", "keen", "keep", "ketchup", "key", "kick", "kid", "kidney", "kind", "kingdom", "kiss", "kit", "kitchen", "kite", "kitten", "kiwi", "knee", "knife", "knock", "know", "lab", "label", "labor", "ladder", "lady", "lake", "lamp", "language", "laptop", "large", "later", "latin", "laugh", "laundry", "lava", "law", "lawn", "lawsuit", "layer", "lazy", "leader", "leaf", "learn", "leave", "lecture", "left", "leg", "legal", "legend", "leisure", "lemon", "lend", "length", "lens", "leopard", "lesson", "letter", "level", "liar", "liberty", "library", "license", "life", "lift", "light", "like", "limb", "limit", "link", "lion", "liquid", "list", "little", "live", "lizard", "load", "loan", "lobster", "local", "lock", "logic", "lonely", "long", "loop", "lottery", "loud", "lounge", "love", "loyal", "lucky", "luggage", "lumber", "lunar", "lunch", "luxury", "lyrics", "machine", "mad", "magic", "magnet", "maid", "mail", "main", "major", "make", "mammal", "man", "manage", "mandate", "mango", "mansion", "manual", "maple", "marble", "march", "margin", "marine", "market", "marriage", "mask", "mass", "master", "match", "material", "math", "matrix", "matter", "maximum", "maze", "meadow", "mean", "measure", "meat", "mechanic", "medal", "media", "melody", "melt", "member", "memory", "mention", "menu", "mercy", "merge", "merit", "merry", "mesh", "message", "metal", "method", "middle", "midnight", "milk", "million", "mimic", "mind", "minimum", "minor", "minute", "miracle", "mirror", "misery", "miss", "mistake", "mix", "mixed", "mixture", "mobile", "model", "modify", "mom", "moment", "monitor", "monkey", "monster", "month", "moon", "moral", "more", "morning", "mosquito", "mother", "motion", "motor", "mountain", "mouse", "move", "movie", "much", "muffin", "mule", "multiply", "muscle", "museum", "mushroom", "music", "must", "mutual", "myself", "mystery", "myth", "naive", "name", "napkin", "narrow", "nasty", "nation", "nature", "near", "neck", "need", "negative", "neglect", "neither", "nephew", "nerve", "nest", "net", "network", "neutral", "never", "news", "next", "nice", "night", "noble", "noise", "nominee", "noodle", "normal", "north", "nose", "notable", "note", "nothing", "notice", "novel", "now", "nuclear", "number", "nurse", "nut", "oak", "obey", "object", "oblige", "obscure", "observe", "obtain", "obvious", "occur", "ocean", "october", "odor", "off", "offer", "office", "often", "oil", "okay", "old", "olive", "olympic", "omit", "once", "one", "onion", "online", "only", "open", "opera", "opinion", "oppose", "option", "orange", "orbit", "orchard", "order", "ordinary", "organ", "orient", "original", "orphan", "ostrich", "other", "outdoor", "outer", "output", "outside", "oval", "oven", "over", "own", "owner", "oxygen", "oyster", "ozone", "pact", "paddle", "page", "pair", "palace", "palm", "panda", "panel", "panic", "panther", "paper", "parade", "parent", "park", "parrot", "party", "pass", "patch", "path", "patient", "patrol", "pattern", "pause", "pave", "payment", "peace", "peanut", "pear", "peasant", "pelican", "pen", "penalty", "pencil", "people", "pepper", "perfect", "permit", "person", "pet", "phone", "photo", "phrase", "physical", "piano", "picnic", "picture", "piece", "pig", "pigeon", "pill", "pilot", "pink", "pioneer", "pipe", "pistol", "pitch", "pizza", "place", "planet", "plastic", "plate", "play", "please", "pledge", "pluck", "plug", "plunge", "poem", "poet", "point", "polar", "pole", "police", "pond", "pony", "pool", "popular", "portion", "position", "possible", "post", "potato", "pottery", "poverty", "powder", "power", "practice", "praise", "predict", "prefer", "prepare", "present", "pretty", "prevent", "price", "pride", "primary", "print", "priority", "prison", "private", "prize", "problem", "process", "produce", "profit", "program", "project", "promote", "proof", "property", "prosper", "protect", "proud", "provide", "public", "pudding", "pull", "pulp", "pulse", "pumpkin", "punch", "pupil", "puppy", "purchase", "purity", "purpose", "purse", "push", "put", "puzzle", "pyramid", "quality", "quantum", "quarter", "question", "quick", "quit", "quiz", "quote", "rabbit", "raccoon", "race", "rack", "radar", "radio", "rail", "rain", "raise", "rally", "ramp", "ranch", "random", "range", "rapid", "rare", "rate", "rather", "raven", "raw", "razor", "ready", "real", "reason", "rebel", "rebuild", "recall", "receive", "recipe", "record", "recycle", "reduce", "reflect", "reform", "refuse", "region", "regret", "regular", "reject", "relax", "release", "relief", "rely", "remain", "remember", "remind", "remove", "render", "renew", "rent", "reopen", "repair", "repeat", "replace", "report", "require", "rescue", "resemble", "resist", "resource", "response", "result", "retire", "retreat", "return", "reunion", "reveal", "review", "reward", "rhythm", "rib", "ribbon", "rice", "rich", "ride", "ridge", "rifle", "right", "rigid", "ring", "riot", "ripple", "risk", "ritual", "rival", "river", "road", "roast", "robot", "robust", "rocket", "romance", "roof", "rookie", "room", "rose", "rotate", "rough", "round", "route", "royal", "rubber", "rude", "rug", "rule", "run", "runway", "rural", "sad", "saddle", "sadness", "safe", "sail", "salad", "salmon", "salon", "salt", "salute", "same", "sample", "sand", "satisfy", "satoshi", "sauce", "sausage", "save", "say", "scale", "scan", "scare", "scatter", "scene", "scheme", "school", "science", "scissors", "scorpion", "scout", "scrap", "screen", "script", "scrub", "sea", "search", "season", "seat", "second", "secret", "section", "security", "seed", "seek", "segment", "select", "sell", "seminar", "senior", "sense", "sentence", "series", "service", "session", "settle", "setup", "seven", "shadow", "shaft", "shallow", "share", "shed", "shell", "sheriff", "shield", "shift", "shine", "ship", "shiver", "shock", "shoe", "shoot", "shop", "short", "shoulder", "shove", "shrimp", "shrug", "shuffle", "shy", "sibling", "sick", "side", "siege", "sight", "sign", "silent", "silk", "silly", "silver", "similar", "simple", "since", "sing", "siren", "sister", "situate", "six", "size", "skate", "sketch", "ski", "skill", "skin", "skirt", "skull", "slab", "slam", "sleep", "slender", "slice", "slide", "slight", "slim", "slogan", "slot", "slow", "slush", "small", "smart", "smile", "smoke", "smooth", "snack", "snake", "snap", "sniff", "snow", "soap", "soccer", "social", "sock", "soda", "soft", "solar", "soldier", "solid", "solution", "solve", "someone", "song", "soon", "sorry", "sort", "soul", "sound", "soup", "source", "south", "space", "spare", "spatial", "spawn", "speak", "special", "speed", "spell", "spend", "sphere", "spice", "spider", "spike", "spin", "spirit", "split", "spoil", "sponsor", "spoon", "sport", "spot", "spray", "spread", "spring", "spy", "square", "squeeze", "squirrel", "stable", "stadium", "staff", "stage", "stairs", "stamp", "stand", "start", "state", "stay", "steak", "steel", "stem", "step", "stereo", "stick", "still", "sting", "stock", "stomach", "stone", "stool", "story", "stove", "strategy", "street", "strike", "strong", "struggle", "student", "stuff", "stumble", "style", "subject", "submit", "subway", "success", "such", "sudden", "suffer", "sugar", "suggest", "suit", "summer", "sun", "sunny", "sunset", "super", "supply", "supreme", "sure", "surface", "surge", "surprise", "surround", "survey", "suspect", "sustain", "swallow", "swamp", "swap", "swarm", "swear", "sweet", "swift", "swim", "swing", "switch", "sword", "symbol", "symptom", "syrup", "system", "table", "tackle", "tag", "tail", "talent", "talk", "tank", "tape", "target", "task", "taste", "tattoo", "taxi", "teach", "team", "tell", "ten", "tenant", "tennis", "tent", "term", "test", "text", "thank", "that", "theme", "then", "theory", "there", "they", "thing", "this", "thought", "three", "thrive", "throw", "thumb", "thunder", "ticket", "tide", "tiger", "tilt", "timber", "time", "tiny", "tip", "tired", "tissue", "title", "toast", "tobacco", "today", "toddler", "toe", "together", "toilet", "token", "tomato", "tomorrow", "tone", "tongue", "tonight", "tool", "tooth", "top", "topic", "topple", "torch", "tornado", "tortoise", "toss", "total", "tourist", "toward", "tower", "town", "toy", "track", "trade", "traffic", "tragic", "train", "transfer", "trap", "trash", "travel", "tray", "treat", "tree", "trend", "trial", "tribe", "trick", "trigger", "trim", "trip", "trophy", "trouble", "truck", "true", "truly", "trumpet", "trust", "truth", "try", "tube", "tuition", "tumble", "tuna", "tunnel", "turkey", "turn", "turtle", "twelve", "twenty", "twice", "twin", "twist", "two", "type", "typical", "ugly", "umbrella", "unable", "unaware", "uncle", "uncover", "under", "undo", "unfair", "unfold", "unhappy", "uniform", "unique", "unit", "universe", "unknown", "unlock", "until", "unusual", "unveil", "update", "upgrade", "uphold", "upon", "upper", "upset", "urban", "urge", "usage", "use", "used", "useful", "useless", "usual", "utility", "vacant", "vacuum", "vague", "valid", "valley", "valve", "van", "vanish", "vapor", "various", "vast", "vault", "vehicle", "velvet", "vendor", "venture", "venue", "verb", "verify", "version", "very", "vessel", "veteran", "viable", "vibrant", "vicious", "victory", "video", "view", "village", "vintage", "violin", "virtual", "virus", "visa", "visit", "visual", "vital", "vivid", "vocal", "voice", "void", "volcano", "volume", "vote", "voyage", "wage", "wagon", "wait", "walk", "wall", "walnut", "want", "warfare", "warm", "warrior", "wash", "wasp", "waste", "water", "wave", "way", "wealth", "weapon", "wear", "weasel", "weather", "web", "wedding", "weekend", "weird", "welcome", "west", "wet", "whale", "what", "wheat", "wheel", "when", "where", "whip", "whisper", "wide", "width", "wife", "wild", "will", "win", "window", "wine", "wing", "wink", "winner", "winter", "wire", "wisdom", "wise", "wish", "witness", "wolf", "woman", "wonder", "wood", "wool", "word", "work", "world", "worry", "worth", "wrap", "wreck", "wrestle", "wrist", "write", "wrong", "yard", "year", "yellow", "you", "young", "youth", "zebra", "zero", "zone", "zoo"];
+
+    // i18n: Vietnamese / English (persisted in localStorage PA_LANG)
+    const STRINGS = {
+      vi: {
+        lock_title: 'Két Sắt Mật Khẩu (Vault)',
+        lock_desc: 'DB mặc định được ứng dụng tự quản lý và chỉ mở được bằng Master Password.',
+        lock_master_ph: 'Nhập mật khẩu chính...',
+        lock_unlock: 'Mở Khóa Cơ Sở Dữ Liệu',
+        lock_forgot: 'Quên mật khẩu? Khôi phục bằng Recovery Key',
+        lock_footer: 'DB mặc định nằm cùng thư mục với Web UI.',
+        hdr_sub: 'Quản lý cơ sở dữ liệu tài khoản & Khóa bảo mật',
+        hdr_create: 'Tạo Key Mới',
+        hdr_export_title: 'Xuất Database JSON',
+        hdr_import_title: 'Nhập Database JSON',
+        hdr_changepwd_title: 'Đổi Master Password (mật khẩu đăng nhập)',
+        hdr_security_title: 'Khôi phục & bảo mật (Recovery Key, nhật ký)',
+        hdr_help_title: 'Hướng dẫn sử dụng',
+        hdr_lock_title: 'Khóa Két Sắt',
+        hdr_lang_title: 'Chuyển ngôn ngữ / Switch language',
+        banner_html: '<span class="font-bold">Két chưa có Recovery Key.</span> Nếu quên Master Password lúc này, dữ liệu sẽ mất vĩnh viễn. Hãy tạo Recovery Key ngay.',
+        banner_btn: 'Tạo Recovery Key',
+        stat_total: 'Tổng Tài Khoản / Key',
+        stat_strong: 'Mật Khẩu Cực Mạnh',
+        stat_weak: 'Cần Nâng Cấp (Yếu)',
+        stat_clip: 'Clipboard Bảo Mật',
+        db_title: 'Cơ Sở Dữ Liệu Mật Khẩu',
+        db_sub: 'Tìm kiếm đa trường theo Tên Ứng Dụng (App) và Tên Người Dùng (User)',
+        search_app_ph: 'Tìm theo Tên App...',
+        search_user_ph: 'Tìm theo Tên User...',
+        reset_filter_title: 'Xóa bộ lọc',
+        reset_filter: 'Làm mới',
+        th_app: 'Ứng Dụng / Dịch Vụ',
+        th_user: 'Tên User / Email',
+        th_pass: 'Mật Khẩu (Key)',
+        th_strength: 'Độ An Toàn',
+        th_category: 'Phân Loại',
+        th_actions: 'Thao Tác',
+        empty_title: 'Không tìm thấy bản ghi nào',
+        empty_desc: 'Không có thông tin khớp với tiêu chí tìm kiếm hoặc cơ sở dữ liệu đang trống. Hãy nhấn "Tạo Key Mới" để bắt đầu!',
+        empty_add: 'Thêm Bản Ghi Mới',
+        cred_title_new: 'Tạo Key & Mật Khẩu Mới',
+        cred_title_edit: 'Chỉnh Sửa Thông Tin Key',
+        cred_sub: 'Bước 1: Khai báo App & User ➔ Bước 2: Tạo Key',
+        step1_label: 'Thông Tin Tài Khoản Bắt Buộc',
+        f_app: 'Tên Ứng Dụng / Dịch Vụ',
+        f_app_ph: 'vd: Google, GitHub, Binance, AWS, Facebook...',
+        f_user: 'Tên Người Dùng / Email / Username',
+        f_user_ph: 'vd: admin@gmail.com, satoshi_nakamoto, dev_ops...',
+        f_category: 'Phân Loại Dịch Vụ',
+        step2_label: 'Tạo Mật Khẩu (Key)',
+        gen_btn: 'Tạo Ngẫu Nhiên (CSPRNG)',
+        entry_pass_ph: 'Nhập hoặc tạo mật khẩu an toàn...',
+        copy_quick_title: 'Sao chép nhanh',
+        sec_label: 'Độ bảo mật:',
+        strength_none: 'Chưa nhập',
+        strength_weak: 'Yếu',
+        strength_medium: 'Trung bình',
+        strength_good: 'Tốt',
+        strength_max: 'Bất khả xâm phạm',
+        crack_instant: 'Thời gian crack: Tức thì',
+        crack_seconds: 'Thời gian crack: Vài giây',
+        crack_days: 'Thời gian crack: Vài ngày / tuần',
+        crack_centuries: 'Thời gian crack: Vài thế kỷ',
+        crack_ages: 'Thời gian crack: Hàng triệu năm',
+        master_none: 'Chưa nhập',
+        master_weak: 'Yếu',
+        master_medium: 'Trung bình',
+        master_good: 'Tốt',
+        master_max: 'Cực mạnh',
+        gen_len: 'Độ dài ký tự:',
+        gen_symbols: 'Ký tự đặc biệt (!@#$)',
+        gen_numbers: 'Chữ số (0-9)',
+        btn_cancel: 'Hủy',
+        btn_save_db: 'Lưu Vào Database',
+        chg_title: 'Đổi Master Password',
+        chg_sub: 'Đổi mật khẩu đăng nhập / mở két sắt',
+        chg_old: 'Mật khẩu hiện tại',
+        chg_old_ph: 'Nhập Master Password hiện tại...',
+        chg_new: 'Mật khẩu mới (tối thiểu 8 ký tự)',
+        chg_new_ph: 'Nhập Master Password mới...',
+        showhide_title: 'Hiện/ẩn',
+        master_sec_label: 'Độ mạnh:',
+        chg_confirm: 'Xác nhận mật khẩu mới',
+        chg_confirm_ph: 'Nhập lại Master Password mới...',
+        chg_note: 'Sau khi đổi, khóa két (DEK) sẽ được bọc lại bằng mật khẩu mới (salt mới + AES-256-GCM) và lưu đè lên DB mặc định. Recovery Key (nếu đã tạo) vẫn giữ nguyên. Nếu quên cả mật khẩu mới lẫn Recovery Key, dữ liệu không thể khôi phục (mã hóa phía máy khách).',
+        chg_submit: 'Đổi Mật Khẩu',
+        sec_title: 'Khôi phục & Bảo mật',
+        sec_sub: 'Ai giữ Recovery Key thì người đó mở được két',
+        sec_vault_fmt: 'Định dạng vault:',
+        sec_vault_v2: 'v2 (DEK + bọc kép AES-GCM)',
+        sec_rec: 'Recovery Key:',
+        sec_rec_on: 'Đã thiết lập',
+        sec_rec_off: 'Chưa thiết lập',
+        sec_rec_btn_new: 'Tạo Recovery Key (24 từ)',
+        sec_rec_btn_rotate: 'Xoay Recovery Key (tạo key mới)',
+        sec_audit: 'Nhật ký bảo mật',
+        sec_audit_clear: 'Xóa log',
+        sec_audit_empty: 'Chưa có sự kiện nào.',
+        rec_setup_title: 'Recovery Key (24 từ)',
+        rec_setup_sub: 'Chìa khóa dự phòng khi quên Master Password',
+        rec_warn_html: '<span class="font-bold text-red-700">Ghi ra giấy và cất offline ngay.</span> Ai có 24 từ này đều mở được két của bạn. Không chụp màn hình, không lưu lên cloud/email. Key chỉ hiện <span class="font-bold">đúng 1 lần</span>.',
+        rec_copy: 'Sao chép',
+        rec_download: 'Tải file .txt',
+        rec_saved_next: 'Tôi đã lưu xong, tiếp tục',
+        rec_confirm_intro: 'Nhập lại các từ ở vị trí sau để chứng minh bạn đã lưu key:',
+        rec_back: 'Quay lại',
+        rec_activate: 'Kích hoạt Recovery Key',
+        rec_title: 'Khôi phục truy cập',
+        rec_sub: 'Dùng Recovery Key 24 từ để đặt mật khẩu mới',
+        rec_input_label: 'Recovery Key (24 từ, cách nhau bằng dấu cách)',
+        rec_input_ph: 'vd: abandon ability able …',
+        rec_verify: 'Xác minh Recovery Key',
+        rec_or: 'hoặc',
+        rec_kit_btn: 'Nạp file Emergency Kit (.txt) — khỏi cần gõ tay',
+        rec_nokey_note: 'Mất cả mật khẩu lẫn Recovery Key? Dữ liệu trong két được giữ nguyên (app không bao giờ tự xóa) nhưng không ai mở được nữa — kể cả tác giả. Hãy tìm lại tờ key/file đã lưu.',
+        rec_ok_note: 'Recovery Key đúng. Đặt Master Password mới cho két:',
+        rec_new: 'Mật khẩu mới (tối thiểu 8 ký tự)',
+        rec_confirm: 'Xác nhận mật khẩu mới',
+        rec_finish: 'Đặt mật khẩu mới & Mở két',
+        help_title: 'Hướng dẫn sử dụng',
+        help_sub: 'PasswordAdmin — két mật khẩu cục bộ (mã hóa phía máy khách)',
+        help_b1: '<p class="font-bold text-slate-900 mb-1">1. Đăng nhập & đổi mật khẩu mặc định</p><p>Mật khẩu mặc định ban đầu là <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Vào app rồi bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16).</p>',
+        help_b2: '<p class="font-bold text-slate-900 mb-1">2. Tạo Key mới (đúng quy trình 2 bước)</p><p>Bấm <span class="font-semibold">Tạo Key Mới</span> → <span class="font-semibold">Bước 1:</span> nhập Tên App + Tên User (bắt buộc) → <span class="font-semibold">Bước 2:</span> bấm "Tạo Ngẫu Nhiên" hoặc tự nhập mật khẩu (kéo thanh trượt 10–64 ký tự, bật/tắt ký tự đặc biệt) → Lưu.</p>',
+        help_b3: '<p class="font-bold text-slate-900 mb-1">3. Tìm kiếm, xem, sao chép</p><p>Tìm độc lập/kết hợp theo Tên App + Tên User. Bấm <span class="font-semibold">con mắt</span> để hiện/ẩn mật khẩu, bấm <span class="font-semibold">Copy</span> để sao chép — clipboard <span class="font-semibold">tự xóa sau 10 giây</span>. Bút chì = sửa, thùng rác = xóa bản ghi.</p>',
+        help_b4: '<p class="font-bold text-slate-900 mb-1">4. Recovery Key — chìa dự phòng khi quên mật khẩu</p><p>Bấm nút <span class="font-semibold">phao 🛟</span> → Tạo Recovery Key (24 từ, hiện đúng 1 lần: ghi giấy + file <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> tự tải về). Quên mật khẩu thì ở màn hình khóa bấm <span class="font-semibold">"Quên mật khẩu?"</span> → gõ 24 từ hoặc <span class="font-semibold">nạp file .txt</span> → đặt mật khẩu mới, dữ liệu nguyên vẹn.</p>',
+        help_b5: '<p class="font-bold text-slate-900 mb-1">5. Sao lưu & nhật ký</p><p>Nút <span class="font-semibold">tải xuống/tải lên</span>: xuất vault mã hóa ra JSON và nhập lại (file khác mật khẩu sẽ được hỏi riêng). Nút 🛟 cũng xem được <span class="font-semibold">nhật ký bảo mật</span> (ai mở két, đổi pass, khôi phục…). Sai quá 5 lần bị khóa 60 giây.</p>',
+        help_warn: '<p class="font-bold text-amber-800 mb-1">⚠️ 3 điều không được quên</p><p class="text-amber-900">Ai giữ Recovery Key thì người đó mở được két — cất như chìa khóa nhà. Mất cả mật khẩu lẫn key thì không ai cứu được (app cũng <span class="font-semibold">không bao giờ tự xóa két</span> của bạn). Rời máy thì bấm <span class="font-semibold">ổ khóa 🔒</span> để khóa két.</p>',
+        badge_records: '{n} bản ghi',
+        strength_badge_max: 'Cực Mạnh (Safe)',
+        strength_badge_good: 'Khá Tốt',
+        strength_badge_medium: 'Trung Bình',
+        strength_badge_weak: 'Yếu (Nguy Hiểm)',
+        row_reveal: 'Hiện mật khẩu',
+        row_hide: 'Ẩn mật khẩu',
+        row_copy_title: 'Sao chép vào Clipboard (Tự xóa sau 10s)',
+        row_edit: 'Chỉnh sửa bản ghi',
+        row_delete: 'Xóa bản ghi',
+        cat_default: 'Mặc định',
+        lockout_title_login: 'Tạm khóa đăng nhập!',
+        lockout_title: 'Tạm khóa!',
+        lockout_msg: 'Sai quá {n} lần. Thử lại sau {s} giây.',
+        unlock_ok_title: 'Mở khóa két sắt',
+        unlock_ok_msg: 'File DB đã được giải mã trong bộ nhớ.',
+        unlock_fail_title: 'Không thể mở DB',
+        unlock_fail_msg: 'Sai Master Password hoặc file DB đã bị sửa.',
+        locked_title: 'Đã khóa két sắt',
+        locked_msg: 'Tất cả thông tin tài khoản đã được bảo mật.',
+        copy_ok_title: 'Đã sao chép mật khẩu!',
+        copy_ok_msg: 'Khóa cho "{label}" đã copy. Tự động xóa khỏi Clipboard sau 10 giây.',
+        clip_cleared_title: 'Clipboard Đã Xóa!',
+        clip_cleared_msg: 'Mật khẩu tạm thời trong bộ nhớ đệm đã bị hủy tự động.',
+        quick_copy_title: 'Đã chép mật khẩu!',
+        quick_copy_msg: 'Đã lưu vào clipboard.',
+        form_missing_title: 'Thiếu thông tin!',
+        form_missing_msg: 'Vui lòng khai báo đầy đủ Tên App, Tên User và Mật Khẩu.',
+        updated_title: 'Đã cập nhật!',
+        updated_msg: 'Bản ghi "{app}" đã được lưu thành công.',
+        created_title: 'Tạo Key thành công!',
+        created_msg: 'Đã thêm tài khoản "{app}" ({user}).',
+        deleted_title: 'Đã xóa!',
+        deleted_msg: 'Đã xóa tài khoản "{app}".',
+        delete_confirm: 'Bạn có chắc muốn xóa bản ghi của "{app}" ({user}) khỏi cơ sở dữ liệu?',
+        not_unlocked_open_title: 'Chưa mở khóa!',
+        not_unlocked_open_msg: 'Hãy mở két sắt bằng Master Password hiện tại trước.',
+        not_unlocked_change_title: 'Chưa mở khóa!',
+        not_unlocked_change_msg: 'Hãy mở két sắt trước khi đổi mật khẩu.',
+        not_unlocked_title: 'Chưa mở khóa!',
+        not_unlocked_msg: 'Hãy mở két sắt trước.',
+        pwd_fields_missing_title: 'Thiếu thông tin!',
+        pwd_fields_missing_msg: 'Vui lòng nhập đầy đủ 3 ô mật khẩu.',
+        pwd_current_wrong_title: 'Sai mật khẩu hiện tại!',
+        pwd_current_wrong_msg: 'Mật khẩu hiện tại không đúng. Không thể đổi.',
+        pwd_too_short_title: 'Mật khẩu quá ngắn!',
+        pwd_too_short_msg: 'Master Password mới phải từ 8 ký tự trở lên (khuyến nghị 12-16).',
+        pwd_mismatch_title: 'Xác nhận chưa khớp!',
+        pwd_mismatch_msg: 'Mật khẩu mới và xác nhận không giống nhau.',
+        pwd_same_title: 'Trùng mật khẩu!',
+        pwd_same_msg: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+        pwd_changed_ok_title: 'Đổi mật khẩu thành công!',
+        pwd_changed_ok_msg: 'Khóa két đã được bọc lại bằng Master Password mới. Recovery Key vẫn giữ nguyên.',
+        pwd_changed_fail_title: 'Đổi mật khẩu thất bại!',
+        pwd_changed_fail_msg: 'Sai mật khẩu hiện tại hoặc không thể ghi DB.',
+        audit_cleared_title: 'Đã xóa log',
+        audit_cleared_msg: 'Nhật ký bảo mật cục bộ đã được xóa.',
+        audit_confirm: 'Xóa toàn bộ nhật ký bảo mật trên máy này?',
+        kit_copied_title: 'Đã sao chép!',
+        kit_copied_msg: 'Dán ra giấy/file offline rồi xóa khỏi clipboard ngay.',
+        kit_downloaded_title: 'Đã tải Emergency Kit',
+        kit_downloaded_msg: 'Cất file nơi an toàn, tách khỏi máy tính.',
+        rec_word_wrong_title: 'Chưa khớp!',
+        rec_word_wrong_msg: 'Từ thứ {i} chưa đúng. Kiểm tra lại tờ đã lưu.',
+        rec_activated_new_title: 'Đã kích hoạt Recovery Key!',
+        rec_activated_new_msg: 'File .txt đã tự tải về — cất kỹ, tách khỏi máy tính.',
+        rec_activated_rotate_title: 'Đã kích hoạt Recovery Key!',
+        rec_activated_rotate_msg: 'Key cũ vô hiệu. File .txt mới đã tự tải về — nhớ xóa file cũ.',
+        op_fail_title: 'Thất bại!',
+        op_fail_msg: 'Không thể ghi DB. Hãy thử lại.',
+        rec_bad_format_title: 'Key chưa đúng định dạng!',
+        rec_need24_msg: 'Recovery Key phải gồm đúng 24 từ (đang có {have} từ).',
+        rec_badword_msg: 'Từ "{w}" không có trong danh sách chuẩn. Kiểm tra lại chính tả.',
+        rec_valid_title: 'Key hợp lệ!',
+        rec_valid_msg: 'Đặt Master Password mới cho két.',
+        rec_fail_nokey: 'Két này chưa thiết lập Recovery Key.',
+        rec_fail_empty: 'Chưa có két nào để khôi phục.',
+        rec_fail_title: 'Không khôi phục được!',
+        rec_fail_default: 'Recovery Key sai hoặc file DB đã bị sửa.',
+        rec_session_expired_title: 'Hết phiên!',
+        rec_session_expired_msg: 'Hãy xác minh Recovery Key lại từ đầu.',
+        rec_new_short_title: 'Mật khẩu quá ngắn!',
+        rec_new_short_msg: 'Tối thiểu 8 ký tự (khuyến nghị 12-16).',
+        rec_new_mismatch_title: 'Xác nhận chưa khớp!',
+        rec_new_mismatch_msg: 'Nhập lại mật khẩu mới cho giống nhau.',
+        rec_success_title: 'Khôi phục thành công!',
+        rec_success_msg: 'Két đã mở bằng Master Password mới.',
+        kit_loaded_title: 'Đã nạp file!',
+        kit_loaded_msg: '24 từ đã điền sẵn — bấm "{verify}".',
+        kit_badfile_title: 'File không hợp lệ!',
+        kit_badfile_msg: 'Không tìm thấy dòng 24 từ chuẩn trong file này.',
+        kit_unreadable_title: 'Không đọc được file!',
+        kit_unreadable_msg: 'Hãy chọn đúng file Emergency Kit (.txt).',
+        export_ok_title: 'Đã xuất Database',
+        export_ok_msg: 'Tệp sao lưu AES-256-GCM đã được tải về.',
+        import_ok_title: 'Nhập Database thành công!',
+        import_ok_msg: 'Đã tải {n} bản ghi vào két hiện tại (giữ nguyên Recovery Key của két này).',
+        import_fail_title: 'Không thể nhập vault!',
+        import_fail_msg: 'File không đúng mật khẩu hoặc đã bị sửa.',
+        import_prompt: 'File sao lưu dùng Master Password khác với két hiện tại. Nhập mật khẩu của file sao lưu (Cancel = bỏ qua):',
+        kit_txt_title: 'PasswordAdmin — Recovery Key (GIỮ KÍN, CẤT OFFLINE)',
+        kit_txt_date: 'Ngày tạo: ',
+        kit_txt_warn: 'Cảnh báo: ai có 24 từ này đều mở được két của bạn. Không chụp màn hình, không lưu cloud/email.',
+        audit_unlock_ok: 'Mở két thành công',
+        audit_unlock_fail: 'Mở két thất bại',
+        audit_pwd_changed: 'Đổi Master Password',
+        audit_vault_migrated: 'Nâng cấp vault v1 → v2',
+        audit_vault_imported: 'Nhập database',
+        audit_recovery_setup: 'Tạo Recovery Key',
+        audit_recovery_rotated: 'Xoay Recovery Key',
+        audit_recovery_used: 'Khôi phục bằng Recovery Key',
+        audit_recovery_fail: 'Khôi phục thất bại',
+        audit_locked_out: 'Tạm khóa đăng nhập',
+        rec_word_label: 'Từ thứ {i}',
+        rec_word_ph: 'Nhập từ thứ {i}...',
+        entropy_bits: 'Entropy: {e} bits'
+      },
+      en: {
+        lock_title: 'Password Vault',
+        lock_desc: 'The default DB is managed by the app and opens only with the Master Password.',
+        lock_master_ph: 'Enter master password...',
+        lock_unlock: 'Unlock Database',
+        lock_forgot: 'Forgot password? Recover with Recovery Key',
+        lock_footer: 'Default DB lives next to the Web UI.',
+        hdr_sub: 'Account database & security key manager',
+        hdr_create: 'New Key',
+        hdr_export_title: 'Export database JSON',
+        hdr_import_title: 'Import database JSON',
+        hdr_changepwd_title: 'Change Master Password (login password)',
+        hdr_security_title: 'Recovery & security (Recovery Key, audit log)',
+        hdr_help_title: 'User guide',
+        hdr_lock_title: 'Lock Vault',
+        hdr_lang_title: 'Switch language / Chuyển ngôn ngữ',
+        banner_html: '<span class="font-bold">Vault has no Recovery Key yet.</span> If you forget the Master Password now, data will be lost forever. Create a Recovery Key right away.',
+        banner_btn: 'Create Recovery Key',
+        stat_total: 'Total Accounts / Keys',
+        stat_strong: 'Very Strong Passwords',
+        stat_weak: 'Needs Upgrade (Weak)',
+        stat_clip: 'Secure Clipboard',
+        db_title: 'Password Database',
+        db_sub: 'Multi-field search by Application (App) and Username (User)',
+        search_app_ph: 'Search by App name...',
+        search_user_ph: 'Search by Username...',
+        reset_filter_title: 'Clear filter',
+        reset_filter: 'Reset',
+        th_app: 'Application / Service',
+        th_user: 'Username / Email',
+        th_pass: 'Password (Key)',
+        th_strength: 'Strength',
+        th_category: 'Category',
+        th_actions: 'Actions',
+        empty_title: 'No records found',
+        empty_desc: 'Nothing matches your search, or the database is empty. Press "New Key" to start!',
+        empty_add: 'Add New Record',
+        cred_title_new: 'Create New Key & Password',
+        cred_title_edit: 'Edit Key Info',
+        cred_sub: 'Step 1: Declare App & User ➔ Step 2: Create Key',
+        step1_label: 'Required Account Info',
+        f_app: 'Application / Service Name',
+        f_app_ph: 'e.g. Google, GitHub, Binance, AWS, Facebook...',
+        f_user: 'Username / Email',
+        f_user_ph: 'e.g. admin@gmail.com, satoshi_nakamoto, dev_ops...',
+        f_category: 'Service Category',
+        step2_label: 'Create Password (Key)',
+        gen_btn: 'Random Generate (CSPRNG)',
+        entry_pass_ph: 'Enter or generate a secure password...',
+        copy_quick_title: 'Quick copy',
+        sec_label: 'Security:',
+        strength_none: 'Not entered',
+        strength_weak: 'Weak',
+        strength_medium: 'Medium',
+        strength_good: 'Good',
+        strength_max: 'Unbreakable',
+        crack_instant: 'Crack time: Instant',
+        crack_seconds: 'Crack time: Seconds',
+        crack_days: 'Crack time: Days to weeks',
+        crack_centuries: 'Crack time: Centuries',
+        crack_ages: 'Crack time: Millions of years',
+        master_none: 'Not entered',
+        master_weak: 'Weak',
+        master_medium: 'Medium',
+        master_good: 'Good',
+        master_max: 'Very strong',
+        gen_len: 'Length:',
+        gen_symbols: 'Special chars (!@#$)',
+        gen_numbers: 'Digits (0-9)',
+        btn_cancel: 'Cancel',
+        btn_save_db: 'Save to Database',
+        chg_title: 'Change Master Password',
+        chg_sub: 'Change login / vault password',
+        chg_old: 'Current password',
+        chg_old_ph: 'Enter current Master Password...',
+        chg_new: 'New password (min 8 characters)',
+        chg_new_ph: 'Enter new Master Password...',
+        showhide_title: 'Show/hide',
+        master_sec_label: 'Strength:',
+        chg_confirm: 'Confirm new password',
+        chg_confirm_ph: 'Re-enter new Master Password...',
+        chg_note: 'After changing, the vault key (DEK) is re-wrapped with the new password (new salt + AES-256-GCM) and the default DB is overwritten. The Recovery Key (if created) stays valid. Losing both the new password and the Recovery Key means unrecoverable data (client-side encryption).',
+        chg_submit: 'Change Password',
+        sec_title: 'Recovery & Security',
+        sec_sub: 'Whoever holds the Recovery Key owns the vault',
+        sec_vault_fmt: 'Vault format:',
+        sec_vault_v2: 'v2 (DEK + dual AES-GCM wrap)',
+        sec_rec: 'Recovery Key:',
+        sec_rec_on: 'Set up',
+        sec_rec_off: 'Not set up',
+        sec_rec_btn_new: 'Create Recovery Key (24 words)',
+        sec_rec_btn_rotate: 'Rotate Recovery Key (new key)',
+        sec_audit: 'Security audit log',
+        sec_audit_clear: 'Clear log',
+        sec_audit_empty: 'No events yet.',
+        rec_setup_title: 'Recovery Key (24 words)',
+        rec_setup_sub: 'Spare key for a forgotten Master Password',
+        rec_warn_html: '<span class="font-bold text-red-700">Write it on paper and store offline now.</span> Anyone with these 24 words can open your vault. No screenshots, no cloud/email. The key is shown <span class="font-bold">exactly once</span>.',
+        rec_copy: 'Copy',
+        rec_download: 'Download .txt',
+        rec_saved_next: "I've saved it, continue",
+        rec_confirm_intro: 'Re-enter the words at these positions to prove you saved the key:',
+        rec_back: 'Back',
+        rec_activate: 'Activate Recovery Key',
+        rec_title: 'Recover access',
+        rec_sub: 'Use the 24-word Recovery Key to set a new password',
+        rec_input_label: 'Recovery Key (24 words, space-separated)',
+        rec_input_ph: 'e.g. abandon ability able …',
+        rec_verify: 'Verify Recovery Key',
+        rec_or: 'or',
+        rec_kit_btn: 'Load Emergency Kit (.txt) — no typing needed',
+        rec_nokey_note: 'Lost both password and Recovery Key? Vault data stays intact (the app never deletes it) but no one can open it anymore — including the author. Find your saved key sheet/file.',
+        rec_ok_note: 'Recovery Key accepted. Set a new Master Password:',
+        rec_new: 'New password (min 8 characters)',
+        rec_confirm: 'Confirm new password',
+        rec_finish: 'Set new password & Unlock',
+        help_title: 'User Guide',
+        help_sub: 'PasswordAdmin — local vault (client-side encryption)',
+        help_b1: '<p class="font-bold text-slate-900 mb-1">1. Login & change the default password</p><p>The initial default password is <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. After entering the app, immediately press the <span class="font-semibold">key button 🔑</span> on the header to set your own password (min 8 characters, 12–16 recommended).</p>',
+        help_b2: '<p class="font-bold text-slate-900 mb-1">2. Create a Key (proper 2-step flow)</p><p>Press <span class="font-semibold">New Key</span> → <span class="font-semibold">Step 1:</span> enter App + Username (required) → <span class="font-semibold">Step 2:</span> press "Random Generate" or type your own password (10–64 slider, toggle special chars) → Save.</p>',
+        help_b3: '<p class="font-bold text-slate-900 mb-1">3. Search, view, copy</p><p>Search by App and/or Username. Press the <span class="font-semibold">eye</span> to show/hide a password, <span class="font-semibold">Copy</span> to copy it — the clipboard <span class="font-semibold">self-clears after 10 seconds</span>. Pencil = edit, trash = delete record.</p>',
+        help_b4: '<p class="font-bold text-slate-900 mb-1">4. Recovery Key — spare key for a forgotten password</p><p>Press the <span class="font-semibold">life-buoy button 🛟</span> → Create Recovery Key (24 words, shown exactly once: write on paper + auto-downloaded <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> file). Forgot your password? On the lock screen press <span class="font-semibold">"Forgot password?"</span> → type the 24 words or <span class="font-semibold">load the .txt file</span> → set a new password, data intact.</p>',
+        help_b5: '<p class="font-bold text-slate-900 mb-1">5. Backup & audit log</p><p><span class="font-semibold">Download/upload</span> buttons: export the encrypted vault to JSON and re-import it (a differently-passworded file is asked separately). The 🛟 button also shows the <span class="font-semibold">security audit log</span> (vault unlocks, password changes, recoveries…). More than 5 failures locks logins for 60 seconds.</p>',
+        help_warn: '<p class="font-bold text-amber-800 mb-1">⚠️ 3 things never to forget</p><p class="text-amber-900">Whoever holds the Recovery Key owns the vault — store it like a house key. Lose both password and key and no one can help (though the app will <span class="font-semibold">never delete your vault</span> by itself). Leaving the machine? Press the <span class="font-semibold">lock 🔒</span> to lock the vault.</p>',
+        badge_records: '{n} records',
+        strength_badge_max: 'Very Strong (Safe)',
+        strength_badge_good: 'Fair',
+        strength_badge_medium: 'Average',
+        strength_badge_weak: 'Weak (Danger)',
+        row_reveal: 'Show password',
+        row_hide: 'Hide password',
+        row_copy_title: 'Copy to clipboard (auto-clears in 10s)',
+        row_edit: 'Edit record',
+        row_delete: 'Delete record',
+        cat_default: 'Default',
+        lockout_title_login: 'Login temporarily locked!',
+        lockout_title: 'Temporarily locked!',
+        lockout_msg: 'Too many ({n}) failures. Retry in {s}s.',
+        unlock_ok_title: 'Vault unlocked',
+        unlock_ok_msg: 'Vault DB decrypted in memory.',
+        unlock_fail_title: 'Cannot open DB',
+        unlock_fail_msg: 'Wrong Master Password or tampered DB file.',
+        locked_title: 'Vault locked',
+        locked_msg: 'All account info secured.',
+        copy_ok_title: 'Password copied!',
+        copy_ok_msg: 'Key for "{label}" copied. Auto-clears from clipboard in 10 seconds.',
+        clip_cleared_title: 'Clipboard Cleared!',
+        clip_cleared_msg: 'The temporarily cached password was auto-destroyed.',
+        quick_copy_title: 'Password copied!',
+        quick_copy_msg: 'Saved to clipboard.',
+        form_missing_title: 'Missing info!',
+        form_missing_msg: 'Please fill App name, Username and Password.',
+        updated_title: 'Updated!',
+        updated_msg: 'Record "{app}" saved successfully.',
+        created_title: 'Key created!',
+        created_msg: 'Added account "{app}" ({user}).',
+        deleted_title: 'Deleted!',
+        deleted_msg: 'Removed account "{app}".',
+        delete_confirm: 'Delete the record "{app}" ({user}) from the database?',
+        not_unlocked_open_title: 'Not unlocked!',
+        not_unlocked_open_msg: 'Unlock the vault with the current Master Password first.',
+        not_unlocked_change_title: 'Not unlocked!',
+        not_unlocked_change_msg: 'Unlock the vault before changing the password.',
+        not_unlocked_title: 'Not unlocked!',
+        not_unlocked_msg: 'Unlock the vault first.',
+        pwd_fields_missing_title: 'Missing info!',
+        pwd_fields_missing_msg: 'Please fill all 3 password fields.',
+        pwd_current_wrong_title: 'Wrong current password!',
+        pwd_current_wrong_msg: 'Current password is incorrect. Cannot change.',
+        pwd_too_short_title: 'Password too short!',
+        pwd_too_short_msg: 'New Master Password needs 8+ characters (12–16 recommended).',
+        pwd_mismatch_title: 'Confirmation mismatch!',
+        pwd_mismatch_msg: 'New passwords do not match.',
+        pwd_same_title: 'Same password!',
+        pwd_same_msg: 'New password must differ from the current one.',
+        pwd_changed_ok_title: 'Password changed!',
+        pwd_changed_ok_msg: 'Vault key re-wrapped with the new Master Password. Recovery Key unchanged.',
+        pwd_changed_fail_title: 'Password change failed!',
+        pwd_changed_fail_msg: 'Wrong current password or DB write failed.',
+        audit_cleared_title: 'Log cleared',
+        audit_cleared_msg: 'Local security log cleared.',
+        audit_confirm: 'Delete the entire security log on this machine?',
+        kit_copied_title: 'Copied!',
+        kit_copied_msg: 'Paste to paper/offline file, then clear the clipboard now.',
+        kit_downloaded_title: 'Emergency Kit downloaded',
+        kit_downloaded_msg: 'Store the file somewhere safe, away from this computer.',
+        rec_word_wrong_title: 'Mismatch!',
+        rec_word_wrong_msg: 'Word #{i} is wrong. Check your saved sheet.',
+        rec_activated_new_title: 'Recovery Key activated!',
+        rec_activated_new_msg: 'The .txt file auto-downloaded — store it safely, away from this computer.',
+        rec_activated_rotate_title: 'Recovery Key activated!',
+        rec_activated_rotate_msg: 'Old key is void. New .txt auto-downloaded — remember to delete the old file.',
+        op_fail_title: 'Failed!',
+        op_fail_msg: 'Cannot write DB. Try again.',
+        rec_bad_format_title: 'Invalid key format!',
+        rec_need24_msg: 'Recovery Key must be exactly 24 words (got {have}).',
+        rec_badword_msg: '"{w}" is not in the standard list. Check spelling.',
+        rec_valid_title: 'Valid key!',
+        rec_valid_msg: 'Set a new Master Password for the vault.',
+        rec_fail_nokey: 'This vault has no Recovery Key set up.',
+        rec_fail_empty: 'No vault to recover yet.',
+        rec_fail_title: 'Cannot recover!',
+        rec_fail_default: 'Wrong Recovery Key or tampered DB file.',
+        rec_session_expired_title: 'Session expired!',
+        rec_session_expired_msg: 'Please verify the Recovery Key again.',
+        rec_new_short_title: 'Password too short!',
+        rec_new_short_msg: 'Minimum 8 characters (12–16 recommended).',
+        rec_new_mismatch_title: 'Confirmation mismatch!',
+        rec_new_mismatch_msg: 'Re-enter the new password identically.',
+        rec_success_title: 'Recovery successful!',
+        rec_success_msg: 'Vault opened with the new Master Password.',
+        kit_loaded_title: 'File loaded!',
+        kit_loaded_msg: '24 words pre-filled — press "{verify}".',
+        kit_badfile_title: 'Invalid file!',
+        kit_badfile_msg: 'No valid 24-word line found in this file.',
+        kit_unreadable_title: 'Cannot read file!',
+        kit_unreadable_msg: 'Please choose the Emergency Kit (.txt) file.',
+        export_ok_title: 'Database exported',
+        export_ok_msg: 'AES-256-GCM backup file downloaded.',
+        import_ok_title: 'Import successful!',
+        import_ok_msg: 'Loaded {n} records into the current vault (its Recovery Key is kept).',
+        import_fail_title: 'Cannot import vault!',
+        import_fail_msg: 'Wrong file password or tampered file.',
+        import_prompt: 'The backup file uses a different Master Password. Enter the backup password (Cancel = skip):',
+        kit_txt_title: 'PasswordAdmin — Recovery Key (KEEP SECRET, STORE OFFLINE)',
+        kit_txt_date: 'Created: ',
+        kit_txt_warn: 'Warning: anyone with these 24 words can open your vault. No screenshots, no cloud/email.',
+        audit_unlock_ok: 'Vault unlocked',
+        audit_unlock_fail: 'Unlock failed',
+        audit_pwd_changed: 'Master Password changed',
+        audit_vault_migrated: 'Vault migrated v1 → v2',
+        audit_vault_imported: 'Database imported',
+        audit_recovery_setup: 'Recovery Key created',
+        audit_recovery_rotated: 'Recovery Key rotated',
+        audit_recovery_used: 'Recovered with Recovery Key',
+        audit_recovery_fail: 'Recovery failed',
+        audit_locked_out: 'Login temporarily locked',
+        rec_word_label: 'Word #{i}',
+        rec_word_ph: 'Enter word #{i}...',
+        entropy_bits: 'Entropy: {e} bits'
+      }
+    };
+
+    // i18n helpers
+    let currentLang = 'vi';
+    try {
+      const savedLang = localStorage.getItem('PA_LANG');
+      if (savedLang === 'vi' || savedLang === 'en') currentLang = savedLang;
+    } catch (err) {}
+
+    function t(key, params) {
+      const dict = STRINGS[currentLang] || STRINGS.vi;
+      let s = (dict && dict[key] !== undefined) ? dict[key] : (STRINGS.vi[key] !== undefined ? STRINGS.vi[key] : key);
+      if (params) {
+        for (const k of Object.keys(params)) {
+          s = String(s).split('{' + k + '}').join(String(params[k]));
+        }
+      }
+      return s;
+    }
+
+    function applyI18n() {
+      if (document.documentElement) document.documentElement.lang = currentLang;
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
+      document.querySelectorAll('[data-i18n-title]').forEach(el => { el.setAttribute('title', t(el.getAttribute('data-i18n-title'))); });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+      const langLabel = document.getElementById('lang-label');
+      if (langLabel) langLabel.innerText = currentLang === 'vi' ? 'EN' : 'VI';
+      const badge = document.getElementById('records-badge');
+      if (badge) badge.innerText = t('badge_records', { n: credentials.length });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setLang(lang) {
+      if (lang !== 'vi' && lang !== 'en') return;
+      currentLang = lang;
+      try { localStorage.setItem('PA_LANG', lang); } catch (err) {}
+      applyI18n();
+      if (isUnlocked) { handleSearch(); updateStatistics(); }
+      renderAuditLog();
+      updateRecoveryBanner();
+    }
+
+    function toggleLang() { setLang(currentLang === 'vi' ? 'en' : 'vi'); }
+
+    function bytesToBase64(bytes) {
+      let binary = '';
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      return btoa(binary);
+    }
+
+    function base64ToBytes(value) {
+      const binary = atob(value);
+      return Uint8Array.from(binary, char => char.charCodeAt(0));
+    }
+
+    async function deriveVaultKey(password, salt) {
+      const passwordBytes = new TextEncoder().encode(password);
+      const material = await crypto.subtle.importKey(
+        'raw',
+        passwordBytes,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt,
+          iterations: 600000,
+          hash: 'SHA-256'
+        },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    // KEK: khóa bọc DEK, suy từ bí mật (password hoặc recovery words) + salt riêng
+    async function deriveKEK(secret, salt) {
+      const material = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(secret),
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt,
+          iterations: VAULT_KDF_ITERATIONS,
+          hash: 'SHA-256'
+        },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['wrapKey', 'unwrapKey']
+      );
+    }
+
+    async function generateDEK() {
+      return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    }
+
+    async function wrapDEK(dek, kek) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const data = await crypto.subtle.wrapKey('jwk', dek, kek, { name: 'AES-GCM', iv });
+      return { iv: bytesToBase64(iv), data: bytesToBase64(new Uint8Array(data)) };
+    }
+
+    async function unwrapDEK(wrapped, kek) {
+      return crypto.subtle.unwrapKey(
+        'jwk',
+        base64ToBytes(wrapped.data),
+        kek,
+        { name: 'AES-GCM', iv: base64ToBytes(wrapped.iv) },
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptRecords(records, dek) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        dek,
+        new TextEncoder().encode(JSON.stringify(records))
+      );
+      return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv) };
+    }
+
+    async function decryptRecords(payload, dek) {
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: base64ToBytes(payload.iv) },
+        dek,
+        base64ToBytes(payload.ciphertext)
+      );
+      const records = JSON.parse(new TextDecoder().decode(decrypted));
+      if (!Array.isArray(records)) throw new Error('Dữ liệu vault không hợp lệ');
+      return records;
+    }
+
+    // Vault v2: records mã hóa bằng DEK; DEK được bọc 2 lớp (password + recovery, độc lập)
+    async function encryptVault(records) {
+      if (!vaultDEK) throw new Error('Vault chưa được mở khóa');
+      if (!vaultSaltPwd || !vaultWrapPwd) throw new Error('Vault thiếu khóa bọc password');
+      const enc = await encryptRecords(records, vaultDEK);
+      return JSON.stringify({
+        version: 2,
+        algorithm: 'AES-256-GCM',
+        kdf: 'PBKDF2-HMAC-SHA256-' + VAULT_KDF_ITERATIONS,
+        salt_pwd: bytesToBase64(vaultSaltPwd),
+        iv_pwd: vaultWrapPwd.iv,
+        wrapped_dek_pwd: vaultWrapPwd.data,
+        salt_rec: vaultSaltRec ? bytesToBase64(vaultSaltRec) : null,
+        iv_rec: vaultWrapRec ? vaultWrapRec.iv : null,
+        wrapped_dek_rec: vaultWrapRec ? vaultWrapRec.data : null,
+        ciphertext: enc.ciphertext,
+        iv: enc.iv
+      });
+    }
+
+    // Giải mã bằng password — hỗ trợ cả vault v1 (legacy) và v2
+    async function decryptVaultWithPassword(raw, password) {
+      const stored = JSON.parse(raw);
+      if (stored.version === 1) {
+        if (stored.algorithm !== 'AES-256-GCM' || !stored.salt) throw new Error('Định dạng DB không hợp lệ');
+        const key = await deriveVaultKey(password, base64ToBytes(stored.salt));
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: base64ToBytes(stored.iv) },
+          key,
+          base64ToBytes(stored.ciphertext)
+        );
+        const records = JSON.parse(new TextDecoder().decode(decrypted));
+        if (!Array.isArray(records)) throw new Error('Dữ liệu vault không hợp lệ');
+        return records;
+      }
+      if (stored.version === 2) {
+        if (stored.algorithm !== 'AES-256-GCM' || !stored.salt_pwd || !stored.wrapped_dek_pwd || !stored.iv_pwd) {
+          throw new Error('Định dạng DB không hợp lệ');
+        }
+        const kek = await deriveKEK(password, base64ToBytes(stored.salt_pwd));
+        const dek = await unwrapDEK({ iv: stored.iv_pwd, data: stored.wrapped_dek_pwd }, kek);
+        return decryptRecords(stored, dek);
+      }
+      throw new Error('Định dạng vault không được hỗ trợ');
+    }
+
+    async function decryptVault(raw) {
+      return decryptVaultWithPassword(raw, currentMasterPassword);
+    }
+
+    async function readVaultFile() {
+      const response = await fetch(`${VAULT_SERVER_URL}/vault`, { cache: 'no-store' });
+      if (response.status === 404) return '';
+      if (!response.ok) throw new Error('Không thể đọc DB mặc định');
+      return response.text();
+    }
+
+    async function ensureDefaultVaultAccess() {
+      const response = await fetch(`${VAULT_SERVER_URL}/health`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Crypto server chưa chạy');
+    }
+
+    function focusMasterPassword() {
+      const input = document.getElementById('master-password-input');
+      if (!input || document.getElementById('lock-modal').classList.contains('hidden')) return;
+      window.setTimeout(() => {
+        input.focus({ preventScroll: true });
+        input.setSelectionRange(input.value.length, input.value.length);
+      }, 0);
+    }
+
+    async function writeVaultFile(content) {
+      const response = await fetch(`${VAULT_SERVER_URL}/vault`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: content
+      });
+      if (!response.ok) throw new Error('Không thể ghi DB mặc định');
+    }
+
+    // Initialize Application
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      focusMasterPassword();
+      localStorage.removeItem('TOKENVECTOR_MASTER_AUTH');
+      localStorage.removeItem('TOKENVECTOR_VAULT_DB');
+      localStorage.removeItem('TOKENVECTOR_VAULT_DB_KDF');
+    });
+
+    // Vault Unlock Handler (hỗ trợ vault v1 legacy + v2, có rate-limit)
+    document.getElementById('vault-auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pass = document.getElementById('master-password-input').value;
+      if (!pass) return;
+      const block = checkRateLimit();
+      if (block.blocked) {
+        showToast(t('lockout_title_login'), t('lockout_msg', { n: MAX_AUTH_FAILS, s: block.secondsLeft }), 'danger');
+        return;
+      }
+      document.getElementById('master-password-input').focus();
+
+      try {
+        await ensureDefaultVaultAccess();
+        const raw = await readVaultFile();
+        pendingMigratedRecords = null;
+        if (!raw.trim()) {
+          // Vault mới: sinh DEK và bọc bằng password (lưu khi loadVaultData seed)
+          vaultSaltPwd = crypto.getRandomValues(new Uint8Array(16));
+          vaultDEK = await generateDEK();
+          vaultWrapPwd = await wrapDEK(vaultDEK, await deriveKEK(pass, vaultSaltPwd));
+          vaultSaltRec = null;
+          vaultWrapRec = null;
+        } else {
+          const stored = JSON.parse(raw);
+          if (stored.version === 1) {
+            // Legacy: giải mã thử để xác thực, rồi migrate sang v2
+            pendingMigratedRecords = await decryptVaultWithPassword(raw, pass);
+            vaultSaltPwd = crypto.getRandomValues(new Uint8Array(16));
+            vaultDEK = await generateDEK();
+            vaultWrapPwd = await wrapDEK(vaultDEK, await deriveKEK(pass, vaultSaltPwd));
+            vaultSaltRec = null;
+            vaultWrapRec = null;
+          } else if (stored.version === 2) {
+            if (!stored.salt_pwd || !stored.wrapped_dek_pwd || !stored.iv_pwd) throw new Error('Định dạng DB không hợp lệ');
+            vaultSaltPwd = base64ToBytes(stored.salt_pwd);
+            const kek = await deriveKEK(pass, vaultSaltPwd);
+            vaultDEK = await unwrapDEK({ iv: stored.iv_pwd, data: stored.wrapped_dek_pwd }, kek);
+            vaultWrapPwd = { iv: stored.iv_pwd, data: stored.wrapped_dek_pwd };
+            vaultSaltRec = stored.salt_rec ? base64ToBytes(stored.salt_rec) : null;
+            vaultWrapRec = stored.wrapped_dek_rec ? { iv: stored.iv_rec, data: stored.wrapped_dek_rec } : null;
+          } else {
+            throw new Error('Định dạng vault không được hỗ trợ');
+          }
+        }
+        clearAuthFails();
+        await unlockApp();
+        currentMasterPassword = pass;
+        auditEvent('unlock_ok', pendingMigratedRecords ? 'migrated v1->v2' : '');
+        showToast(t('unlock_ok_title'), t('unlock_ok_msg'), 'success');
+      } catch (err) {
+        vaultDEK = null;
+        vaultSaltPwd = null;
+        vaultWrapPwd = null;
+        vaultSaltRec = null;
+        vaultWrapRec = null;
+        pendingMigratedRecords = null;
+        currentMasterPassword = null;
+        document.getElementById('lock-modal').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        console.error('Vault unlock failed:', err);
+        recordAuthFail();
+        auditEvent('unlock_fail', '');
+        showToast(t('unlock_fail_title'), t('unlock_fail_msg'), 'danger');
+        document.getElementById('master-password-input').value = '';
+        focusMasterPassword();
+      }
+    });
+
+    async function unlockApp() {
+      await loadVaultData();
+      isUnlocked = true;
+      document.getElementById('lock-modal').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function lockVault() {
+      isUnlocked = false;
+      document.getElementById('master-password-input').value = '';
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('lock-modal').classList.remove('hidden');
+      revealedKeys.clear();
+      vaultDEK = null;
+      vaultSaltPwd = null;
+      vaultWrapPwd = null;
+      vaultSaltRec = null;
+      vaultWrapRec = null;
+      pendingMigratedRecords = null;
+      pendingRecoveryWords = null;
+      pendingRecoveryDEK = null;
+      pendingRecoverySaltRec = null;
+      pendingRecoveryWrapRec = null;
+      currentMasterPassword = null;
+      focusMasterPassword();
+      showToast(t('locked_title'), t('locked_msg'), 'neutral');
+    }
+
+    function updateRecoveryBanner() {
+      const banner = document.getElementById('recovery-banner');
+      if (!banner) return;
+      const show = isUnlocked && vaultDEK && !vaultWrapRec;
+      banner.classList.toggle('hidden', !show);
+      if (show) lucide.createIcons();
+    }
+
+    // Data Load & Save
+    async function loadVaultData() {
+      if (pendingMigratedRecords) {
+        credentials = pendingMigratedRecords;
+        pendingMigratedRecords = null;
+        await saveVaultData();
+        auditEvent('vault_migrated', 'v1 -> v2');
+      } else {
+        const raw = await readVaultFile();
+        if (raw && raw.trim()) {
+          const stored = JSON.parse(raw);
+          credentials = await decryptRecords(stored, vaultDEK);
+        } else {
+          // Preload demo seed records if empty
+          credentials = [
+            {
+              id: 'rec-1',
+              app: 'Google Workspace',
+              user: 'security-admin@company.com',
+              password: 'g!X9#kL2$vP8*mQ1&wZ4',
+              category: 'Công việc',
+              rating: 4,
+              entropy: 128,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            },
+            {
+              id: 'rec-2',
+              app: 'GitHub Enterprise',
+              user: 'dev_lead',
+              password: 'ghp_TokenVectorSafeSecretKey2026!#',
+              category: 'Server / Cloud',
+              rating: 4,
+              entropy: 135,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            },
+            {
+              id: 'rec-3',
+              app: 'Binance Exchange',
+              user: 'crypto_trader@vip.com',
+              password: 'BNB#Secure99281!xYzQ',
+              category: 'Tài chính',
+              rating: 4,
+              entropy: 115,
+              updatedAt: new Date().toLocaleDateString('vi-VN')
+            }
+          ];
+        await saveVaultData();
+        }
+      }
+      renderTable(credentials);
+      updateStatistics();
+      updateRecoveryBanner();
+    }
+
+    async function saveVaultData() {
+      await writeVaultFile(await encryptVault(credentials));
+      updateStatistics();
+    }
+
+    // Statistics Calculation
+    function updateStatistics() {
+      const total = credentials.length;
+      const strong = credentials.filter(c => c.rating >= 4).length;
+      const weak = credentials.filter(c => c.rating <= 2).length;
+
+      document.getElementById('stat-total').innerText = total;
+      document.getElementById('stat-strong').innerText = strong;
+      document.getElementById('stat-weak').innerText = weak;
+      document.getElementById('records-badge').innerText = t('badge_records', { n: total });
+    }
+
+    // Dual-Field Search Logic (App and User)
+    function handleSearch() {
+      const queryApp = (document.getElementById('search-app').value || '').trim().toLowerCase();
+      const queryUser = (document.getElementById('search-user').value || '').trim().toLowerCase();
+
+      const filtered = credentials.filter(item => {
+        const matchApp = !queryApp || item.app.toLowerCase().includes(queryApp);
+        const matchUser = !queryUser || item.user.toLowerCase().includes(queryUser);
+        return matchApp && matchUser;
+      });
+
+      renderTable(filtered);
+    }
+
+    function resetSearch() {
+      document.getElementById('search-app').value = '';
+      document.getElementById('search-user').value = '';
+      renderTable(credentials);
+    }
+
+    // Render Table Rows (Light Theme: White background, Slate-900 Black text)
+    function renderTable(data) {
+      const tbody = document.getElementById('credential-table-body');
+      const emptyState = document.getElementById('empty-state');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      data.forEach(item => {
+        const isRevealed = revealedKeys.has(item.id);
+        const displayPassword = isRevealed ? item.password : '••••••••••••••••';
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50 transition-colors group';
+
+        row.innerHTML = `
+          <td class="py-4 px-4 font-bold text-slate-900">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              </span>
+              <span>${escapeHtml(item.app)}</span>
+            </div>
+          </td>
+          <td class="py-4 px-4 text-slate-700 font-mono text-[11px] font-medium">
+            ${escapeHtml(item.user)}
+          </td>
+          <td class="py-4 px-4 font-mono">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-300 text-slate-900 font-semibold text-[11px] select-all">
+                ${escapeHtml(displayPassword)}
+              </span>
+              <button 
+                type="button" 
+                onclick="toggleReveal('${item.id}')" 
+                class="p-1 text-slate-400 hover:text-slate-800 transition-colors"
+                title="${isRevealed ? t('row_hide') : t('row_reveal')}"
+              >
+                <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" class="w-3.5 h-3.5"></i>
+              </button>
+              <button
+                type="button"
+                onclick="copyToClipboardById('${item.id}')"
+                class="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                title="${t('row_copy_title')}"
+              >
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+          <td class="py-4 px-4">
+            ${getStrengthBadge(item.rating)}
+          </td>
+          <td class="py-4 px-4">
+            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              ${escapeHtml(item.category || t('cat_default'))}
+            </span>
+          </td>
+          <td class="py-4 px-4 text-right">
+            <div class="inline-flex items-center gap-1">
+              <button 
+                onclick="openEditModal('${item.id}')" 
+                class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                title="${t('row_edit')}"
+              >
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button 
+                onclick="deleteCredential('${item.id}')" 
+                class="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                title="${t('row_delete')}"
+              >
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    function getStrengthBadge(rating) {
+      if (rating >= 4) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">' + escapeHtml(t('strength_badge_max')) + '</span>';
+      } else if (rating === 3) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">' + escapeHtml(t('strength_badge_good')) + '</span>';
+      } else if (rating === 2) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">' + escapeHtml(t('strength_badge_medium')) + '</span>';
+      } else {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">' + escapeHtml(t('strength_badge_weak')) + '</span>';
+      }
+    }
+
+    function toggleReveal(id) {
+      if (revealedKeys.has(id)) {
+        revealedKeys.delete(id);
+      } else {
+        revealedKeys.add(id);
+      }
+      handleSearch();
+    }
+
+    // Auto-Purge Clipboard Logic (10 Seconds)
+    function copyToClipboardById(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+      copyToClipboard(item.password, `${item.app} - ${item.user}`);
+    }
+
+    function copyToClipboard(secret, label) {
+      navigator.clipboard.writeText(secret).then(() => {
+        showToast(t('copy_ok_title'), t('copy_ok_msg', { label }), 'success');
+
+        if (clipboardTimer) clearTimeout(clipboardTimer);
+        clipboardTimer = setTimeout(() => {
+          navigator.clipboard.writeText('').then(() => {
+            showToast(t('clip_cleared_title'), t('clip_cleared_msg'), 'neutral');
+          }).catch(() => {});
+        }, 10000);
+      });
+    }
+
+    function copyQuickPassword(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(t('quick_copy_title'), t('quick_copy_msg'), 'success');
+      });
+    }
+
+    // CSPRNG Password Generator
+    async function generateCSPRNGPassword() {
+      const length = parseInt(document.getElementById('gen-length').value, 10) || 20;
+      const useSymbols = document.getElementById('gen-symbols').checked;
+      const useNumbers = document.getElementById('gen-numbers').checked;
+
+      if (useSymbols && useNumbers) {
+        try {
+          const response = await fetch(`http://127.0.0.1:8765/generate?length=${length}`);
+          if (response.ok) {
+            const payload = await response.json();
+            if (payload.password) {
+              document.getElementById('entry-password').value = payload.password;
+              evaluatePasswordStrength(payload.password);
+              return;
+            }
+          }
+        } catch (error) {
+          // Use the browser generator when the local bridge is not running.
+        }
+      }
+
+      let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (useNumbers) charset += '0123456789';
+      if (useSymbols) charset += '!@#$%^&*()-_=+[]{}|;:,.<>?';
+
+      const randomValues = new Uint32Array(length);
+      window.crypto.getRandomValues(randomValues);
+
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += charset[randomValues[i] % charset.length];
+      }
+
+      document.getElementById('entry-password').value = result;
+      evaluatePasswordStrength(result);
+    }
+
+    // Password Strength & Entropy Evaluator
+    function evaluatePasswordStrength(password) {
+      const bar = document.getElementById('strength-bar');
+      const label = document.getElementById('strength-label');
+      const entropyText = document.getElementById('entropy-text');
+      const crackText = document.getElementById('crack-time-text');
+
+      if (!password) {
+        bar.style.width = '0%';
+        bar.className = 'h-full bg-slate-300 rounded-full';
+        label.innerText = t('strength_none');
+        label.className = 'font-bold text-slate-400';
+        entropyText.innerText = t('entropy_bits', { e: 0 });
+        crackText.innerText = t('crack_instant');
+        return 0;
+      }
+
+      let poolSize = 0;
+      if (/[a-z]/.test(password)) poolSize += 26;
+      if (/[A-Z]/.test(password)) poolSize += 26;
+      if (/[0-9]/.test(password)) poolSize += 10;
+      if (/[^a-zA-Z0-9]/.test(password)) poolSize += 32;
+
+      const entropy = Math.round(password.length * Math.log2(Math.max(poolSize, 2)));
+      entropyText.innerText = t('entropy_bits', { e: entropy });
+
+      let rating = 1;
+      if (entropy < 40 || password.length < 8) {
+        rating = 1;
+        bar.style.width = '25%';
+        bar.className = 'h-full bg-red-500 rounded-full transition-all';
+        label.innerText = t('strength_weak');
+        label.className = 'font-bold text-red-600';
+        crackText.innerText = t('crack_seconds');
+      } else if (entropy < 65 || password.length < 12) {
+        rating = 2;
+        bar.style.width = '50%';
+        bar.className = 'h-full bg-amber-500 rounded-full transition-all';
+        label.innerText = t('strength_medium');
+        label.className = 'font-bold text-amber-600';
+        crackText.innerText = t('crack_days');
+      } else if (entropy < 85 || password.length < 16) {
+        rating = 3;
+        bar.style.width = '75%';
+        bar.className = 'h-full bg-blue-600 rounded-full transition-all';
+        label.innerText = t('strength_good');
+        label.className = 'font-bold text-blue-600';
+        crackText.innerText = t('crack_centuries');
+      } else {
+        rating = 4;
+        bar.style.width = '100%';
+        bar.className = 'h-full bg-emerald-600 rounded-full transition-all';
+        label.innerText = t('strength_max');
+        label.className = 'font-bold text-emerald-600';
+        crackText.innerText = t('crack_ages');
+      }
+
+      return rating;
+    }
+
+    // Modal Operations
+    function openCreateModal() {
+      document.getElementById('modal-title').innerText = t('cred_title_new');
+      document.getElementById('entry-id').value = '';
+      document.getElementById('entry-app').value = '';
+      document.getElementById('entry-user').value = '';
+      document.getElementById('entry-password').value = '';
+      document.getElementById('entry-category').value = 'Công việc';
+      document.getElementById('gen-length').value = 20;
+      document.getElementById('length-val').innerText = '20';
+
+      generateCSPRNGPassword();
+
+      document.getElementById('credential-modal').classList.remove('hidden');
+      document.getElementById('entry-app').focus();
+    }
+
+    function openEditModal(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+
+      document.getElementById('modal-title').innerText = t('cred_title_edit');
+      document.getElementById('entry-id').value = item.id;
+      document.getElementById('entry-app').value = item.app;
+      document.getElementById('entry-user').value = item.user;
+      document.getElementById('entry-password').value = item.password;
+      document.getElementById('entry-category').value = item.category || 'Công việc';
+      evaluatePasswordStrength(item.password);
+
+      document.getElementById('credential-modal').classList.remove('hidden');
+    }
+
+    function closeCredentialModal() {
+      document.getElementById('credential-modal').classList.add('hidden');
+    }
+
+    // Form Save (Create or Update)
+    function saveCredential(e) {
+      e.preventDefault();
+      const id = document.getElementById('entry-id').value;
+      const app = document.getElementById('entry-app').value.trim();
+      const user = document.getElementById('entry-user').value.trim();
+      const password = document.getElementById('entry-password').value;
+      const category = document.getElementById('entry-category').value;
+
+      if (!app || !user || !password) {
+        showToast(t('form_missing_title'), t('form_missing_msg'), 'warning');
+        return;
+      }
+
+      const rating = evaluatePasswordStrength(password);
+
+      if (id) {
+        const index = credentials.findIndex(c => c.id === id);
+        if (index !== -1) {
+          credentials[index] = {
+            ...credentials[index],
+            app,
+            user,
+            password,
+            category,
+            rating,
+            updatedAt: new Date().toLocaleDateString('vi-VN')
+          };
+          showToast(t('updated_title'), t('updated_msg', { app }), 'success');
+        }
+      } else {
+        const newEntry = {
+          id: 'rec-' + Date.now(),
+          app,
+          user,
+          password,
+          category,
+          rating,
+          updatedAt: new Date().toLocaleDateString('vi-VN')
+        };
+        credentials.unshift(newEntry);
+        showToast(t('created_title'), t('created_msg', { app, user }), 'success');
+      }
+
+      saveVaultData();
+      closeCredentialModal();
+      handleSearch();
+    }
+
+    // Delete Record
+    function deleteCredential(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+
+      if (confirm(t('delete_confirm', { app: item.app, user: item.user }))) {
+        credentials = credentials.filter(c => c.id !== id);
+        revealedKeys.delete(id);
+        saveVaultData();
+        handleSearch();
+        showToast(t('deleted_title'), t('deleted_msg', { app: item.app }), 'neutral');
+      }
+    }
+
+    // Change Master Password (mật khẩu đăng nhập / mở két)
+    function openChangePasswordModal() {
+      if (!isUnlocked || !vaultDEK) {
+        showToast(t('not_unlocked_open_title'), t('not_unlocked_open_msg'), 'warning');
+        return;
+      }
+      document.getElementById('old-master-password').value = '';
+      document.getElementById('new-master-password').value = '';
+      document.getElementById('confirm-master-password').value = '';
+      evaluateMasterStrength('');
+      document.getElementById('change-password-modal').classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => document.getElementById('old-master-password').focus(), 50);
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('change-password-modal').classList.add('hidden');
+    }
+
+    function evaluateMasterStrength(password) {
+      const bar = document.getElementById('master-strength-bar');
+      const label = document.getElementById('master-strength-label');
+      if (!bar || !label) return 0;
+      if (!password) {
+        bar.style.width = '0%';
+        bar.className = 'h-full bg-slate-300 rounded-full';
+        label.innerText = t('master_none');
+        label.className = 'font-bold text-slate-400';
+        return 0;
+      }
+      let poolSize = 0;
+      if (/[a-z]/.test(password)) poolSize += 26;
+      if (/[A-Z]/.test(password)) poolSize += 26;
+      if (/[0-9]/.test(password)) poolSize += 10;
+      if (/[^a-zA-Z0-9]/.test(password)) poolSize += 32;
+      const entropy = Math.round(password.length * Math.log2(Math.max(poolSize, 2)));
+      let rating = 1;
+      if (entropy < 40 || password.length < 8) {
+        rating = 1; bar.style.width = '25%'; bar.className = 'h-full bg-red-500 rounded-full transition-all';
+        label.innerText = t('master_weak'); label.className = 'font-bold text-red-600';
+      } else if (entropy < 65 || password.length < 12) {
+        rating = 2; bar.style.width = '50%'; bar.className = 'h-full bg-amber-500 rounded-full transition-all';
+        label.innerText = t('master_medium'); label.className = 'font-bold text-amber-600';
+      } else if (entropy < 85 || password.length < 16) {
+        rating = 3; bar.style.width = '75%'; bar.className = 'h-full bg-blue-600 rounded-full transition-all';
+        label.innerText = t('master_good'); label.className = 'font-bold text-blue-600';
+      } else {
+        rating = 4; bar.style.width = '100%'; bar.className = 'h-full bg-emerald-600 rounded-full transition-all';
+        label.innerText = t('master_max'); label.className = 'font-bold text-emerald-600';
+      }
+      return rating;
+    }
+
+    async function changeMasterPassword(e) {
+      e.preventDefault();
+      if (!isUnlocked || !vaultDEK || !vaultSaltPwd || !vaultWrapPwd) {
+        showToast(t('not_unlocked_change_title'), t('not_unlocked_change_msg'), 'warning');
+        return;
+      }
+      const oldPass = document.getElementById('old-master-password').value;
+      const newPass = document.getElementById('new-master-password').value;
+      const confirmPass = document.getElementById('confirm-master-password').value;
+      const submitBtn = document.getElementById('change-password-submit');
+
+      if (!oldPass || !newPass || !confirmPass) {
+        showToast(t('pwd_fields_missing_title'), t('pwd_fields_missing_msg'), 'warning');
+        return;
+      }
+      if (oldPass !== currentMasterPassword) {
+        showToast(t('pwd_current_wrong_title'), t('pwd_current_wrong_msg'), 'danger');
+        return;
+      }
+      if (newPass.length < 8) {
+        showToast(t('pwd_too_short_title'), t('pwd_too_short_msg'), 'warning');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        showToast(t('pwd_mismatch_title'), t('pwd_mismatch_msg'), 'warning');
+        return;
+      }
+      if (newPass === oldPass) {
+        showToast(t('pwd_same_title'), t('pwd_same_msg'), 'warning');
+        return;
+      }
+
+      const originalLabel = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Đang mã hóa lại...</span>';
+      try {
+        // Xác thực mật khẩu cũ bằng cách mở thử DEK (không động đến dữ liệu)
+        const oldKek = await deriveKEK(oldPass, vaultSaltPwd);
+        await unwrapDEK(vaultWrapPwd, oldKek);
+        // Bọc lại DEK bằng mật khẩu mới (salt mới). Recovery Key giữ nguyên.
+        const newSalt = crypto.getRandomValues(new Uint8Array(16));
+        vaultWrapPwd = await wrapDEK(vaultDEK, await deriveKEK(newPass, newSalt));
+        vaultSaltPwd = newSalt;
+        currentMasterPassword = newPass;
+        await saveVaultData();
+        auditEvent('pwd_changed', '');
+        closeChangePasswordModal();
+        document.getElementById('change-password-form').reset();
+        evaluateMasterStrength('');
+        showToast(t('pwd_changed_ok_title'), t('pwd_changed_ok_msg'), 'success');
+      } catch (err) {
+        console.error('Change master password failed:', err);
+        showToast(t('pwd_changed_fail_title'), t('pwd_changed_fail_msg'), 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalLabel;
+        lucide.createIcons();
+      }
+    }
+
+    // Rate-limit đăng nhập/khôi phục (chống đoán mò tại chỗ)
+    function getAuthFailState() {
+      try {
+        return JSON.parse(localStorage.getItem(AUTH_FAIL_KEY) || '{"count":0,"lockUntil":0}');
+      } catch (err) {
+        return { count: 0, lockUntil: 0 };
+      }
+    }
+
+    function checkRateLimit() {
+      const s = getAuthFailState();
+      const now = Date.now();
+      if (s.lockUntil && now < s.lockUntil) {
+        return { blocked: true, secondsLeft: Math.ceil((s.lockUntil - now) / 1000) };
+      }
+      return { blocked: false, secondsLeft: 0 };
+    }
+
+    function recordAuthFail() {
+      const s = getAuthFailState();
+      s.count = (s.count || 0) + 1;
+      if (s.count >= MAX_AUTH_FAILS) {
+        s.lockUntil = Date.now() + LOCKOUT_MS;
+        s.count = 0;
+        auditEvent('locked_out', 'sai quá ' + MAX_AUTH_FAILS + ' lần');
+      }
+      try { localStorage.setItem(AUTH_FAIL_KEY, JSON.stringify(s)); } catch (err) {}
+    }
+
+    function clearAuthFails() {
+      try { localStorage.removeItem(AUTH_FAIL_KEY); } catch (err) {}
+    }
+
+    // Nhật ký bảo mật (lưu cục bộ, tối đa 100 sự kiện)
+    function auditLabel(ev) {
+      return t('audit_' + ev);
+    }
+
+    function auditEvent(ev, detail) {
+      try {
+        const log = JSON.parse(localStorage.getItem(AUDIT_KEY) || '[]');
+        log.push({ ts: new Date().toISOString(), ev, detail: detail || '' });
+        while (log.length > 100) log.shift();
+        localStorage.setItem(AUDIT_KEY, JSON.stringify(log));
+      } catch (err) {}
+    }
+
+    function getAuditLog() {
+      try {
+        const log = JSON.parse(localStorage.getItem(AUDIT_KEY) || '[]');
+        return Array.isArray(log) ? log : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function renderAuditLog() {
+      const list = document.getElementById('audit-log-list');
+      if (!list) return;
+      const log = getAuditLog().slice(-20).reverse();
+      if (!log.length) {
+        list.innerHTML = '<p class="text-slate-400">' + escapeHtml(t('sec_audit_empty')) + '</p>';
+        return;
+      }
+      list.innerHTML = log.map(e => {
+        const when = new Date(e.ts).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US');
+        const rawLabel = auditLabel(e.ev);
+        const label = rawLabel === ('audit_' + e.ev) ? e.ev : rawLabel;
+        return `<div class="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-between gap-2">
+          <span class="text-slate-800 font-semibold">${escapeHtml(label)}${e.detail ? ' — ' + escapeHtml(e.detail) : ''}</span>
+          <span class="text-slate-400 shrink-0">${escapeHtml(when)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function clearAuditLog() {
+      if (!confirm(t('audit_confirm'))) return;
+      try { localStorage.removeItem(AUDIT_KEY); } catch (err) {}
+      renderAuditLog();
+      showToast(t('audit_cleared_title'), t('audit_cleared_msg'), 'neutral');
+    }
+
+    // Recovery Key: 24 từ BIP39 (ai giữ key = chủ két)
+    function generateRecoveryWords() {
+      const rand = new Uint32Array(RECOVERY_WORD_COUNT);
+      crypto.getRandomValues(rand);
+      return Array.from(rand, n => BIP39_WORDS[n % BIP39_WORDS.length]);
+    }
+
+    function normalizeRecoveryInput(text) {
+      return (text || '').toLowerCase().replace(/[,;]/g, ' ').trim().split(/\s+/).filter(Boolean);
+    }
+
+    function validateRecoveryWords(words) {
+      if (words.length !== RECOVERY_WORD_COUNT) {
+        return t('rec_need24_msg', { have: words.length });
+      }
+      const dict = new Set(BIP39_WORDS);
+      for (const w of words) {
+        if (!dict.has(w)) return t('rec_badword_msg', { w });
+      }
+      return null;
+    }
+
+    // Modal Bảo mật
+    function openSecurityModal() {
+      if (!isUnlocked || !vaultDEK) {
+        showToast(t('not_unlocked_title'), t('not_unlocked_msg'), 'warning');
+        return;
+      }
+      document.getElementById('security-vault-version').innerText = t('sec_vault_v2');
+      const st = document.getElementById('security-recovery-status');
+      if (vaultWrapRec) {
+        st.innerText = t('sec_rec_on');
+        st.className = 'font-bold text-emerald-600';
+        document.getElementById('security-recovery-btn-label').innerText = t('sec_rec_btn_rotate');
+      } else {
+        st.innerText = t('sec_rec_off');
+        st.className = 'font-bold text-amber-600';
+        document.getElementById('security-recovery-btn-label').innerText = t('sec_rec_btn_new');
+      }
+      renderAuditLog();
+      document.getElementById('security-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeSecurityModal() {
+      document.getElementById('security-modal').classList.add('hidden');
+    }
+
+    // Modal Hướng dẫn sử dụng
+    function openHelpModal() {
+      document.getElementById('help-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeHelpModal() {
+      document.getElementById('help-modal').classList.add('hidden');
+    }
+
+    // Tạo / xoay Recovery Key
+    function openRecoverySetupModal() {
+      if (!isUnlocked || !vaultDEK) {
+        showToast(t('not_unlocked_title'), t('not_unlocked_msg'), 'warning');
+        return;
+      }
+      pendingRecoveryWords = generateRecoveryWords();
+      const grid = document.getElementById('recovery-words-grid');
+      grid.innerHTML = pendingRecoveryWords.map((w, i) =>
+        `<div class="px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-center"><span class="text-slate-400">${i + 1}.</span> <span class="font-bold text-slate-900">${escapeHtml(w)}</span></div>`
+      ).join('');
+      document.getElementById('recovery-setup-step1').classList.remove('hidden');
+      document.getElementById('recovery-setup-step2').classList.add('hidden');
+      document.getElementById('recovery-setup-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeRecoverySetupModal() {
+      document.getElementById('recovery-setup-modal').classList.add('hidden');
+      pendingRecoveryWords = null;
+      document.getElementById('recovery-words-grid').innerHTML = '';
+      document.getElementById('recovery-confirm-fields').innerHTML = '';
+    }
+
+    function recoverySetupGoStep2() {
+      if (!pendingRecoveryWords) return;
+      const idxs = new Set();
+      while (idxs.size < 3) idxs.add(Math.floor(Math.random() * RECOVERY_WORD_COUNT));
+      recoveryConfirmIndexes = Array.from(idxs);
+      document.getElementById('recovery-confirm-fields').innerHTML = recoveryConfirmIndexes.map(i => `
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">${escapeHtml(t('rec_word_label', { i: i + 1 }))} <span class="text-red-500">*</span></label>
+          <input type="text" data-confirm-idx="${i}" placeholder="${escapeHtml(t('rec_word_ph', { i: i + 1 }))}"
+            class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
+        </div>`).join('');
+      document.getElementById('recovery-setup-step1').classList.add('hidden');
+      document.getElementById('recovery-setup-step2').classList.remove('hidden');
+    }
+
+    function recoverySetupGoStep1() {
+      document.getElementById('recovery-setup-step2').classList.add('hidden');
+      document.getElementById('recovery-setup-step1').classList.remove('hidden');
+    }
+
+    function copyRecoveryWords() {
+      if (!pendingRecoveryWords) return;
+      navigator.clipboard.writeText(pendingRecoveryWords.join(' ')).then(() => {
+        showToast(t('kit_copied_title'), t('kit_copied_msg'), 'success');
+      });
+    }
+
+    function buildRecoveryKitText(words) {
+      const locale = currentLang === 'vi' ? 'vi-VN' : 'en-US';
+      return [
+        t('kit_txt_title'),
+        t('kit_txt_date') + new Date().toLocaleString(locale),
+        '',
+        words.join(' '),
+        '',
+        t('kit_txt_warn')
+      ].join('\n');
+    }
+
+    // Luôn dùng cùng tên file để ghi đè file cũ (nếu trình duyệt lưu thành file mới, nhớ xóa file cũ)
+    function downloadRecoveryKitFile(words) {
+      const a = document.createElement('a');
+      a.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(buildRecoveryKitText(words)));
+      a.setAttribute('download', 'PasswordAdmin-Recovery-Key.txt');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function downloadRecoveryWords() {
+      if (!pendingRecoveryWords) return;
+      downloadRecoveryKitFile(pendingRecoveryWords);
+      showToast(t('kit_downloaded_title'), t('kit_downloaded_msg'), 'success');
+    }
+
+    async function confirmRecoverySetup() {
+      if (!pendingRecoveryWords || !vaultDEK) return;
+      const inputs = document.querySelectorAll('#recovery-confirm-fields input[data-confirm-idx]');
+      for (const inp of inputs) {
+        const i = parseInt(inp.getAttribute('data-confirm-idx'), 10);
+        if ((inp.value || '').trim().toLowerCase() !== pendingRecoveryWords[i]) {
+          showToast(t('rec_word_wrong_title'), t('rec_word_wrong_msg', { i: i + 1 }), 'warning');
+          return;
+        }
+      }
+      const btn = document.getElementById('recovery-setup-confirm-btn');
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      try {
+        const isRotate = !!vaultWrapRec;
+        const activatedWords = pendingRecoveryWords.slice();
+        vaultSaltRec = crypto.getRandomValues(new Uint8Array(16));
+        vaultWrapRec = await wrapDEK(vaultDEK, await deriveKEK(activatedWords.join(' '), vaultSaltRec));
+        await saveVaultData();
+        // Tự xuất file .txt (cùng tên file để ghi đè file cũ)
+        downloadRecoveryKitFile(activatedWords);
+        auditEvent(isRotate ? 'recovery_rotated' : 'recovery_setup', '');
+        closeRecoverySetupModal();
+        updateRecoveryBanner();
+        if (!document.getElementById('security-modal').classList.contains('hidden')) openSecurityModal();
+        showToast(t('rec_activated_new_title'), isRotate ? t('rec_activated_rotate_msg') : t('rec_activated_new_msg'), 'success');
+      } catch (err) {
+        console.error('Recovery setup failed:', err);
+        showToast(t('op_fail_title'), t('op_fail_msg'), 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        lucide.createIcons();
+      }
+    }
+
+    // Quên mật khẩu: khôi phục bằng Recovery Key (màn hình khóa)
+    function openRecoveryModal() {
+      document.getElementById('recovery-words-input').value = '';
+      document.getElementById('recovery-new-password').value = '';
+      document.getElementById('recovery-confirm-password').value = '';
+      document.getElementById('recovery-step1').classList.remove('hidden');
+      document.getElementById('recovery-step2').classList.add('hidden');
+      pendingRecoveryDEK = null;
+      document.getElementById('recovery-modal').classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => document.getElementById('recovery-words-input').focus(), 50);
+    }
+
+    function closeRecoveryModal() {
+      document.getElementById('recovery-modal').classList.add('hidden');
+      pendingRecoveryDEK = null;
+      document.getElementById('recovery-words-input').value = '';
+    }
+
+    async function verifyRecoveryKey() {
+      const block = checkRateLimit();
+      if (block.blocked) {
+        showToast(t('lockout_title'), t('lockout_msg', { n: MAX_AUTH_FAILS, s: block.secondsLeft }), 'danger');
+        return;
+      }
+      const words = normalizeRecoveryInput(document.getElementById('recovery-words-input').value);
+      const errMsg = validateRecoveryWords(words);
+      if (errMsg) {
+        showToast(t('rec_bad_format_title'), errMsg, 'warning');
+        return;
+      }
+      const btn = document.getElementById('recovery-verify-btn');
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      try {
+        await ensureDefaultVaultAccess();
+        const raw = await readVaultFile();
+        if (!raw.trim()) throw new Error(t('rec_fail_empty'));
+        const stored = JSON.parse(raw);
+        if (stored.version !== 2 || !stored.salt_rec || !stored.wrapped_dek_rec || !stored.iv_rec) {
+          throw new Error(t('rec_fail_nokey'));
+        }
+        const kek = await deriveKEK(words.join(' '), base64ToBytes(stored.salt_rec));
+        pendingRecoveryDEK = await unwrapDEK({ iv: stored.iv_rec, data: stored.wrapped_dek_rec }, kek);
+        pendingRecoverySaltRec = base64ToBytes(stored.salt_rec);
+        pendingRecoveryWrapRec = { iv: stored.iv_rec, data: stored.wrapped_dek_rec };
+        document.getElementById('recovery-step1').classList.add('hidden');
+        const step2 = document.getElementById('recovery-step2');
+        step2.classList.remove('hidden');
+        setTimeout(() => document.getElementById('recovery-new-password').focus(), 50);
+        showToast(t('rec_valid_title'), t('rec_valid_msg'), 'success');
+      } catch (err) {
+        console.error('Recovery verify failed:', err);
+        pendingRecoveryDEK = null;
+        recordAuthFail();
+        auditEvent('recovery_fail', '');
+        showToast(t('rec_fail_title'), (err.message === t('rec_fail_nokey') || err.message === t('rec_fail_empty')) ? err.message : t('rec_fail_default'), 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    }
+
+    async function finishRecovery(e) {
+      e.preventDefault();
+      if (!pendingRecoveryDEK) {
+        showToast(t('rec_session_expired_title'), t('rec_session_expired_msg'), 'warning');
+        return;
+      }
+      const newPass = document.getElementById('recovery-new-password').value;
+      const confirmPass = document.getElementById('recovery-confirm-password').value;
+      if (!newPass || newPass.length < 8) {
+        showToast(t('rec_new_short_title'), t('rec_new_short_msg'), 'warning');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        showToast(t('rec_new_mismatch_title'), t('rec_new_mismatch_msg'), 'warning');
+        return;
+      }
+      const btn = document.getElementById('recovery-finish-btn');
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      try {
+        vaultDEK = pendingRecoveryDEK;
+        vaultSaltRec = pendingRecoverySaltRec;
+        vaultWrapRec = pendingRecoveryWrapRec;
+        vaultSaltPwd = crypto.getRandomValues(new Uint8Array(16));
+        vaultWrapPwd = await wrapDEK(vaultDEK, await deriveKEK(newPass, vaultSaltPwd));
+        currentMasterPassword = newPass;
+        pendingRecoveryDEK = null;
+        await saveVaultData();
+        clearAuthFails();
+        auditEvent('recovery_used', '');
+        closeRecoveryModal();
+        await unlockApp();
+        showToast(t('rec_success_title'), t('rec_success_msg'), 'success');
+      } catch (err) {
+        console.error('Finish recovery failed:', err);
+        showToast(t('op_fail_title'), t('op_fail_msg'), 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        lucide.createIcons();
+      }
+    }
+
+    // Nạp file Emergency Kit (.txt) — tự điền 24 từ, khỏi gõ tay
+    function importRecoveryKit(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = String(e.target.result || '');
+          const dict = new Set(BIP39_WORDS);
+          const lines = text.split(/\r?\n/);
+          for (const line of lines) {
+            const toks = normalizeRecoveryInput(line);
+            if (toks.length === RECOVERY_WORD_COUNT && toks.every(w => dict.has(w))) {
+              document.getElementById('recovery-words-input').value = toks.join(' ');
+              showToast(t('kit_loaded_title'), t('kit_loaded_msg', { verify: t('rec_verify') }), 'success');
+              return;
+            }
+          }
+          showToast(t('kit_badfile_title'), t('kit_badfile_msg'), 'danger');
+        } catch (err) {
+          showToast(t('kit_unreadable_title'), t('kit_unreadable_msg'), 'danger');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // Database Export & Import
+    async function exportDatabase() {
+      const encryptedVault = await encryptVault(credentials);
+      const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(encryptedVault);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `PasswordVault_Backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast(t('export_ok_title'), t('export_ok_msg'), 'success');
+    }
+
+    function importDatabase(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          let imported = null;
+          try {
+            imported = await decryptVault(e.target.result);
+          } catch (firstErr) {
+            const filePass = prompt(t('import_prompt'));
+            if (!filePass) throw firstErr;
+            imported = await decryptVaultWithPassword(e.target.result, filePass);
+          }
+          if (Array.isArray(imported)) {
+            credentials = imported;
+            await saveVaultData();
+            auditEvent('vault_imported', imported.length + ' records');
+            handleSearch();
+            showToast(t('import_ok_title'), t('import_ok_msg', { n: imported.length }), 'success');
+          }
+        } catch (err) {
+          showToast(t('import_fail_title'), t('import_fail_msg'), 'danger');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // UI Utilities: Toast Notifications (Light theme style)
+    function showToast(title, message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const typeStyles = {
+        success: 'border-emerald-200 bg-white text-emerald-800 shadow-md',
+        danger: 'border-red-200 bg-white text-red-800 shadow-md',
+        warning: 'border-amber-200 bg-white text-amber-800 shadow-md',
+        neutral: 'border-slate-200 bg-white text-slate-800 shadow-md'
+      };
+
+      const icons = {
+        success: 'check-circle-2',
+        danger: 'alert-triangle',
+        warning: 'alert-circle',
+        neutral: 'info'
+      };
+
+      const iconColors = {
+        success: 'text-emerald-600',
+        danger: 'text-red-600',
+        warning: 'text-amber-600',
+        neutral: 'text-blue-600'
+      };
+
+      toast.className = `pointer-events-auto p-4 rounded-2xl border transition-all duration-300 transform translate-x-10 opacity-0 flex items-start gap-3 ${typeStyles[type] || typeStyles.neutral}`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-5 h-5 shrink-0 mt-0.5 ${iconColors[type] || 'text-slate-600'}"></i>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-slate-900">${escapeHtml(title)}</p>
+          <p class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">${escapeHtml(message)}</p>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.remove('translate-x-10', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-x-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function togglePasswordVisibility(inputId, button) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        button.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+      } else {
+        input.type = 'password';
+        button.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+      }
+      lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    applyI18n();
+  </script>
+</body>
+</html>

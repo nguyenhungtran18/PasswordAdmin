@@ -1,6 +1,6 @@
 # PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.2.0</sup>
 
-🌐 English version: [README_EN.md](README_EN.md)
+🌐 English version: [README.md](README.md)
 
 ---
 

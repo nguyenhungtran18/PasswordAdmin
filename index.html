@@ -208,6 +208,14 @@
             <i data-lucide="life-buoy" class="w-4 h-4"></i>
           </button>
 
+          <button
+            onclick="openHelpModal()"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all"
+            title="Hướng dẫn sử dụng"
+          >
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+          </button>
+
           <button 
             onclick="lockVault()" 
             class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all" 
@@ -781,6 +789,53 @@
         </div>
         <button type="submit" id="recovery-finish-btn" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all">Đặt mật khẩu mới & Mở két</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Hướng dẫn sử dụng -->
+  <div id="help-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <i data-lucide="help-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Hướng dẫn sử dụng</h3>
+            <p class="text-[11px] text-slate-500">PasswordAdmin — két mật khẩu cục bộ (Zero-Knowledge)</p>
+          </div>
+        </div>
+        <button onclick="closeHelpModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs text-slate-600 leading-relaxed">
+        <div>
+          <p class="font-bold text-slate-900 mb-1">1. Đăng nhập & đổi mật khẩu mặc định</p>
+          <p>Mật khẩu mặc định ban đầu là <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Vào app rồi bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16).</p>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">2. Tạo Key mới (đúng quy trình 2 bước)</p>
+          <p>Bấm <span class="font-semibold">Tạo Key Mới</span> → <span class="font-semibold">Bước 1:</span> nhập Tên App + Tên User (bắt buộc) → <span class="font-semibold">Bước 2:</span> bấm "Tạo Ngẫu Nhiên" hoặc tự nhập mật khẩu (kéo thanh trượt 10–64 ký tự, bật/tắt ký tự đặc biệt) → Lưu.</p>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">3. Tìm kiếm, xem, sao chép</p>
+          <p>Tìm độc lập/kết hợp theo Tên App + Tên User. Bấm <span class="font-semibold">con mắt</span> để hiện/ẩn mật khẩu, bấm <span class="font-semibold">Copy</span> để sao chép — clipboard <span class="font-semibold">tự xóa sau 10 giây</span>. Bút chì = sửa, thùng rác = xóa bản ghi.</p>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">4. Recovery Key — chìa dự phòng khi quên mật khẩu</p>
+          <p>Bấm nút <span class="font-semibold">phao 🛟</span> → Tạo Recovery Key (24 từ, hiện đúng 1 lần: ghi giấy + file <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> tự tải về). Quên mật khẩu thì ở màn hình khóa bấm <span class="font-semibold">"Quên mật khẩu?"</span> → gõ 24 từ hoặc <span class="font-semibold">nạp file .txt</span> → đặt mật khẩu mới, dữ liệu nguyên vẹn.</p>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">5. Sao lưu & nhật ký</p>
+          <p>Nút <span class="font-semibold">tải xuống/tải lên</span>: xuất vault mã hóa ra JSON và nhập lại (file khác mật khẩu sẽ được hỏi riêng). Nút 🛟 cũng xem được <span class="font-semibold">nhật ký bảo mật</span> (ai mở két, đổi pass, khôi phục…). Sai quá 5 lần bị khóa 60 giây.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          <p class="font-bold text-amber-800 mb-1">⚠️ 3 điều không được quên</p>
+          <p class="text-amber-900">Ai giữ Recovery Key thì người đó mở được két — cất như chìa khóa nhà. Mất cả mật khẩu lẫn key thì không ai cứu được (app cũng <span class="font-semibold">không bao giờ tự xóa két</span> của bạn). Rời máy thì bấm <span class="font-semibold">ổ khóa 🔒</span> để khóa két.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1775,6 +1830,16 @@
 
     function closeSecurityModal() {
       document.getElementById('security-modal').classList.add('hidden');
+    }
+
+    // Modal Hướng dẫn sử dụng
+    function openHelpModal() {
+      document.getElementById('help-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeHelpModal() {
+      document.getElementById('help-modal').classList.add('hidden');
     }
 
     // Tạo / xoay Recovery Key

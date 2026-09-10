@@ -1,6 +1,6 @@
 # PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.2.0</sup>
 
-🌐 Bản tiếng Việt: [README.md](README.md)
+🌐 Bản tiếng Việt: [README.vi.md](README.vi.md)
 
 ---
 
@@ -18,6 +18,8 @@
 [![Encryption](https://img.shields.io/badge/Security-AES--256--GCM_PBKDF2--600k-059669?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![Interface](https://img.shields.io/badge/Theme-Modern_Light_Mode-0f172a?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber?style=flat-square)](https://github.com/nguyenhungtran18/PasswordAdmin/blob/main/LICENSE)
+
+> ⭐ **Like this project?** If you find **PasswordAdmin** useful or have downloaded it for a try, please give the project **1 star ⭐ on GitHub** to support the author! 👉 [Star now](https://github.com/nguyenhungtran18/PasswordAdmin)
 
 ---
 
@@ -55,6 +57,14 @@
 7. **Change Login Password:** Change the Master Password right in the Web UI without losing data — the DEK is re-wrapped with a new salt and the default DB overwritten (Recovery Key unchanged).
 8. **Create a Recovery Key & Self-Recover a Forgotten Password:** Create the 24-word key once (`PasswordAdmin-Recovery-Key.txt` auto-downloads on activation; rotating downloads a new same-named file over the old one), then type the words or **load the Emergency Kit (.txt)** on the lock screen to set a new password yourself — no data loss, and the app never deletes your vault.
 9. **Help Button in the Dashboard:** Press `?` on the header anytime to open a popup with a quick usage guide (login, key creation, copy, recovery, backup, the 3 things never to forget).
+
+---
+
+## 🔧 Core Engine: The TokenVector Language
+
+The native core of **PasswordAdmin** (the `crypto_bridge_server.exe` loopback server and the password-generation engine) is written in **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)** — the programming language behind this software's core engine, compiled to lightweight native binaries that start instantly with no bulky runtime.
+
+🔗 **Learn more about TokenVector:** [https://github.com/nguyenhungtran18/TokenVector](https://github.com/nguyenhungtran18/TokenVector)
 
 ---
 

@@ -98,7 +98,7 @@
       <div>
         <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Két Sắt Mật Khẩu (Vault)</h2>
         <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-          Nhập Master Password để giải mã cơ sở dữ liệu (Zero-Knowledge SHA-256).
+          PasswordVault.vault.json được dùng làm DB mặc định và chỉ mở được bằng Master Password.
         </p>
       </div>
 
@@ -134,7 +134,7 @@
       </form>
       <div class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
         <i data-lucide="info" class="w-3.5 h-3.5 text-blue-600"></i>
-        <span>Nếu dùng lần đầu, mật khẩu bạn nhập sẽ trở thành Master Key.</span>
+        <span>DB mặc định nằm cùng thư mục với Web UI.</span>
       </div>
     </div>
   </div>
@@ -183,6 +183,14 @@
             <i data-lucide="upload" class="w-4 h-4"></i>
           </button>
           <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importDatabase(event)" />
+
+          <button
+            onclick="openChangePasswordModal()"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all"
+            title="Đổi Master Password (mật khẩu đăng nhập)"
+          >
+            <i data-lucide="key-round" class="w-4 h-4"></i>
+          </button>
 
           <button 
             onclick="lockVault()" 
@@ -523,34 +531,196 @@
     </div>
   </div>
 
+  <!-- Modal: Đổi Master Password (mật khẩu đăng nhập / mở két) -->
+  <div id="change-password-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-left space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Đổi Master Password</h3>
+            <p class="text-[11px] text-slate-500">Đổi mật khẩu đăng nhập / mở két sắt</p>
+          </div>
+        </div>
+        <button onclick="closeChangePasswordModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="change-password-form" onsubmit="changeMasterPassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu hiện tại <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input type="password" id="old-master-password" required placeholder="Nhập Master Password hiện tại..."
+              class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+            <button type="button" onclick="togglePasswordVisibility('old-master-password', this)"
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5" title="Hiện/ẩn">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới (tối thiểu 8 ký tự) <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input type="password" id="new-master-password" required minlength="8" placeholder="Nhập Master Password mới..."
+              oninput="evaluateMasterStrength(this.value)"
+              class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+            <button type="button" onclick="togglePasswordVisibility('new-master-password', this)"
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5" title="Hiện/ẩn">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="mt-2 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-500">Độ mạnh:</span>
+              <span id="master-strength-label" class="font-bold text-slate-400">Chưa nhập</span>
+            </div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div id="master-strength-bar" class="h-full w-0 transition-all duration-300 bg-slate-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Xác nhận mật khẩu mới <span class="text-red-500">*</span></label>
+          <input type="password" id="confirm-master-password" required minlength="8" placeholder="Nhập lại Master Password mới..."
+            class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          Sau khi đổi, toàn bộ vault sẽ được mã hóa lại (salt mới + AES-256-GCM) và lưu đè lên DB mặc định.
+          Nếu quên mật khẩu mới, dữ liệu không thể khôi phục (Zero-Knowledge).
+        </p>
+        <div class="flex items-center justify-end gap-2.5 pt-1">
+          <button type="button" onclick="closeChangePasswordModal()"
+            class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all">Hủy</button>
+          <button type="submit" id="change-password-submit"
+            class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Đổi Mật Khẩu</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Client-side Cryptography, State & UI Logic -->
   <script>
     // State Management
     let credentials = [];
-    let masterPasswordHash = null;
+    let vaultCryptoKey = null;
+    let vaultSalt = null;
+    let currentMasterPassword = null;
+    let vaultFileHandle = null;
+    let vaultFile = null;
+    const DEFAULT_VAULT_FILENAME = 'PasswordVault.vault.json';
     let isUnlocked = false;
     let revealedKeys = new Set();
     let clipboardTimer = null;
 
-    // Local Storage Keys
-    const VAULT_STORAGE_KEY = 'TOKENVECTOR_VAULT_DB';
-    const MASTER_HASH_KEY = 'TOKENVECTOR_MASTER_AUTH';
+    function bytesToBase64(bytes) {
+      let binary = '';
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      return btoa(binary);
+    }
 
-    // Helper: Zero-Knowledge SHA-256 Hash
-    async function hashString(str) {
-      const utf8 = new TextEncoder().encode(str);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    function base64ToBytes(value) {
+      const binary = atob(value);
+      return Uint8Array.from(binary, char => char.charCodeAt(0));
+    }
+
+    async function deriveVaultKey(password, salt) {
+      const passwordBytes = new TextEncoder().encode(password);
+      const material = await crypto.subtle.importKey(
+        'raw',
+        passwordBytes,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt,
+          iterations: 600000,
+          hash: 'SHA-256'
+        },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptVault(records) {
+      if (!vaultCryptoKey) throw new Error('Vault chưa được mở khóa');
+      if (!vaultSalt) throw new Error('Vault chưa có salt');
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const plaintext = new TextEncoder().encode(JSON.stringify(records));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        vaultCryptoKey,
+        plaintext
+      );
+      return JSON.stringify({
+        version: 1,
+        algorithm: 'AES-256-GCM',
+        kdf: 'PBKDF2-HMAC-SHA256-600000',
+        salt: bytesToBase64(vaultSalt),
+        ciphertext: bytesToBase64(new Uint8Array(encrypted)),
+        iv: bytesToBase64(iv)
+      });
+    }
+
+    async function decryptVault(raw) {
+      const stored = JSON.parse(raw);
+      if (stored.version !== 1 || stored.algorithm !== 'AES-256-GCM') {
+        throw new Error('Định dạng vault không được hỗ trợ');
+      }
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: base64ToBytes(stored.iv) },
+        vaultCryptoKey,
+        base64ToBytes(stored.ciphertext)
+      );
+      const records = JSON.parse(new TextDecoder().decode(decrypted));
+      if (!Array.isArray(records)) throw new Error('Dữ liệu vault không hợp lệ');
+      return records;
+    }
+
+    async function readVaultFile() {
+      if (vaultFileHandle) return (await vaultFileHandle.getFile()).text();
+      if (vaultFile) return vaultFile.text();
+      const response = await fetch(DEFAULT_VAULT_FILENAME, { cache: 'no-store' });
+      if (response.status === 404) return '';
+      if (!response.ok) throw new Error('Không thể đọc DB mặc định');
+      return response.text();
+    }
+
+    async function writeVaultFile(content) {
+      if (vaultFileHandle) {
+        const writable = await vaultFileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      }
+      if (!('showSaveFilePicker' in window)) {
+        throw new Error('Trình duyệt không hỗ trợ quyền ghi file mặc định');
+      }
+      vaultFileHandle = await window.showSaveFilePicker({
+        suggestedName: DEFAULT_VAULT_FILENAME,
+        types: [{ description: 'Encrypted Password Vault', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await vaultFileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
     }
 
     // Initialize Application
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      const existingHash = localStorage.getItem(MASTER_HASH_KEY);
-      if (!existingHash) {
-        document.getElementById('master-password-input').placeholder = 'Tạo Master Password mới...';
-      }
+      localStorage.removeItem('TOKENVECTOR_MASTER_AUTH');
+      localStorage.removeItem('TOKENVECTOR_VAULT_DB');
+      localStorage.removeItem('TOKENVECTOR_VAULT_DB_KDF');
     });
 
     // Vault Unlock Handler
@@ -559,30 +729,32 @@
       const pass = document.getElementById('master-password-input').value;
       if (!pass) return;
 
-      const inputHash = await hashString(pass);
-      const savedHash = localStorage.getItem(MASTER_HASH_KEY);
-
-      if (!savedHash) {
-        // Register Master Key
-        localStorage.setItem(MASTER_HASH_KEY, inputHash);
-        masterPasswordHash = inputHash;
-        showToast('Khởi tạo thành công!', 'Master Password đã được thiết lập bảo vệ két sắt.', 'success');
-        unlockApp();
-      } else if (savedHash === inputHash) {
-        masterPasswordHash = inputHash;
-        showToast('Mở khóa két sắt', 'Đã xác thực danh tính thành công.', 'success');
-        unlockApp();
-      } else {
-        showToast('Sai mật khẩu!', 'Master Password không chính xác. Vui lòng thử lại.', 'danger');
+      try {
+        const raw = await readVaultFile();
+        if (!raw.trim()) {
+          vaultSalt = crypto.getRandomValues(new Uint8Array(16));
+        } else {
+          const stored = JSON.parse(raw);
+          if (stored.version !== 1 || !stored.salt) throw new Error('Định dạng DB không hợp lệ');
+          vaultSalt = base64ToBytes(stored.salt);
+        }
+        vaultCryptoKey = await deriveVaultKey(pass, vaultSalt);
+        await unlockApp();
+        currentMasterPassword = pass;
+        showToast('Mở khóa két sắt', 'File DB đã được giải mã trong bộ nhớ.', 'success');
+      } catch (err) {
+        vaultCryptoKey = null;
+        currentMasterPassword = null;
+        showToast('Không thể mở DB', 'Sai Master Password hoặc file DB đã bị sửa.', 'danger');
         document.getElementById('master-password-input').value = '';
       }
     });
 
-    function unlockApp() {
+    async function unlockApp() {
       isUnlocked = true;
       document.getElementById('lock-modal').classList.add('hidden');
       document.getElementById('app-container').classList.remove('hidden');
-      loadVaultData();
+      await loadVaultData();
       lucide.createIcons();
     }
 
@@ -592,16 +764,18 @@
       document.getElementById('app-container').classList.add('hidden');
       document.getElementById('lock-modal').classList.remove('hidden');
       revealedKeys.clear();
+      vaultCryptoKey = null;
+      vaultSalt = null;
+      currentMasterPassword = null;
       showToast('Đã khóa két sắt', 'Tất cả thông tin tài khoản đã được bảo mật.', 'neutral');
     }
 
     // Data Load & Save
-    function loadVaultData() {
-      try {
-        const raw = localStorage.getItem(VAULT_STORAGE_KEY);
-        if (raw) {
-          credentials = JSON.parse(raw);
-        } else {
+    async function loadVaultData() {
+      const raw = await readVaultFile();
+      if (raw) {
+        credentials = await decryptVault(raw);
+      } else {
           // Preload demo seed records if empty
           credentials = [
             {
@@ -635,17 +809,14 @@
               updatedAt: new Date().toLocaleDateString('vi-VN')
             }
           ];
-          saveVaultData();
-        }
-      } catch (err) {
-        credentials = [];
+        await saveVaultData();
       }
       renderTable(credentials);
       updateStatistics();
     }
 
-    function saveVaultData() {
-      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(credentials));
+    async function saveVaultData() {
+      await writeVaultFile(await encryptVault(credentials));
       updateStatistics();
     }
 
@@ -725,9 +896,9 @@
               >
                 <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" class="w-3.5 h-3.5"></i>
               </button>
-              <button 
-                type="button" 
-                onclick="copyToClipboard('${item.password}', '${escapeHtml(item.app)} - ${escapeHtml(item.user)}')" 
+              <button
+                type="button"
+                onclick="copyToClipboardById('${item.id}')"
                 class="p-1 text-slate-400 hover:text-blue-600 transition-colors"
                 title="Sao chép vào Clipboard (Tự xóa sau 10s)"
               >
@@ -791,6 +962,12 @@
     }
 
     // Auto-Purge Clipboard Logic (10 Seconds)
+    function copyToClipboardById(id) {
+      const item = credentials.find(c => c.id === id);
+      if (!item) return;
+      copyToClipboard(item.password, `${item.app} - ${item.user}`);
+    }
+
     function copyToClipboard(secret, label) {
       navigator.clipboard.writeText(secret).then(() => {
         showToast('Đã sao chép mật khẩu!', `Khóa cho "${label}" đã copy. Tự động xóa khỏi Clipboard sau 10 giây.`, 'success');
@@ -812,10 +989,26 @@
     }
 
     // CSPRNG Password Generator
-    function generateCSPRNGPassword() {
+    async function generateCSPRNGPassword() {
       const length = parseInt(document.getElementById('gen-length').value, 10) || 20;
       const useSymbols = document.getElementById('gen-symbols').checked;
       const useNumbers = document.getElementById('gen-numbers').checked;
+
+      if (useSymbols && useNumbers) {
+        try {
+          const response = await fetch(`http://127.0.0.1:8765/generate?length=${length}`);
+          if (response.ok) {
+            const payload = await response.json();
+            if (payload.password) {
+              document.getElementById('entry-password').value = payload.password;
+              evaluatePasswordStrength(payload.password);
+              return;
+            }
+          }
+        } catch (error) {
+          // Use the browser generator when the local bridge is not running.
+        }
+      }
 
       let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
       if (useNumbers) charset += '0123456789';
@@ -992,16 +1185,136 @@
       }
     }
 
+    // Change Master Password (mật khẩu đăng nhập / mở két)
+    function openChangePasswordModal() {
+      if (!isUnlocked || !vaultCryptoKey) {
+        showToast('Chưa mở khóa!', 'Hãy mở két sắt bằng Master Password hiện tại trước.', 'warning');
+        return;
+      }
+      document.getElementById('old-master-password').value = '';
+      document.getElementById('new-master-password').value = '';
+      document.getElementById('confirm-master-password').value = '';
+      evaluateMasterStrength('');
+      document.getElementById('change-password-modal').classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => document.getElementById('old-master-password').focus(), 50);
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('change-password-modal').classList.add('hidden');
+    }
+
+    function evaluateMasterStrength(password) {
+      const bar = document.getElementById('master-strength-bar');
+      const label = document.getElementById('master-strength-label');
+      if (!bar || !label) return 0;
+      if (!password) {
+        bar.style.width = '0%';
+        bar.className = 'h-full bg-slate-300 rounded-full';
+        label.innerText = 'Chưa nhập';
+        label.className = 'font-bold text-slate-400';
+        return 0;
+      }
+      let poolSize = 0;
+      if (/[a-z]/.test(password)) poolSize += 26;
+      if (/[A-Z]/.test(password)) poolSize += 26;
+      if (/[0-9]/.test(password)) poolSize += 10;
+      if (/[^a-zA-Z0-9]/.test(password)) poolSize += 32;
+      const entropy = Math.round(password.length * Math.log2(Math.max(poolSize, 2)));
+      let rating = 1;
+      if (entropy < 40 || password.length < 8) {
+        rating = 1; bar.style.width = '25%'; bar.className = 'h-full bg-red-500 rounded-full transition-all';
+        label.innerText = 'Yếu'; label.className = 'font-bold text-red-600';
+      } else if (entropy < 65 || password.length < 12) {
+        rating = 2; bar.style.width = '50%'; bar.className = 'h-full bg-amber-500 rounded-full transition-all';
+        label.innerText = 'Trung bình'; label.className = 'font-bold text-amber-600';
+      } else if (entropy < 85 || password.length < 16) {
+        rating = 3; bar.style.width = '75%'; bar.className = 'h-full bg-blue-600 rounded-full transition-all';
+        label.innerText = 'Tốt'; label.className = 'font-bold text-blue-600';
+      } else {
+        rating = 4; bar.style.width = '100%'; bar.className = 'h-full bg-emerald-600 rounded-full transition-all';
+        label.innerText = 'Cực mạnh'; label.className = 'font-bold text-emerald-600';
+      }
+      return rating;
+    }
+
+    async function changeMasterPassword(e) {
+      e.preventDefault();
+      if (!isUnlocked || !vaultCryptoKey || !vaultSalt) {
+        showToast('Chưa mở khóa!', 'Hãy mở két sắt trước khi đổi mật khẩu.', 'warning');
+        return;
+      }
+      const oldPass = document.getElementById('old-master-password').value;
+      const newPass = document.getElementById('new-master-password').value;
+      const confirmPass = document.getElementById('confirm-master-password').value;
+      const submitBtn = document.getElementById('change-password-submit');
+
+      if (!oldPass || !newPass || !confirmPass) {
+        showToast('Thiếu thông tin!', 'Vui lòng nhập đầy đủ 3 ô mật khẩu.', 'warning');
+        return;
+      }
+      if (oldPass !== currentMasterPassword) {
+        showToast('Sai mật khẩu hiện tại!', 'Mật khẩu hiện tại không đúng. Không thể đổi.', 'danger');
+        return;
+      }
+      if (newPass.length < 8) {
+        showToast('Mật khẩu quá ngắn!', 'Master Password mới phải từ 8 ký tự trở lên (khuyến nghị 12-16).', 'warning');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        showToast('Xác nhận chưa khớp!', 'Mật khẩu mới và xác nhận không giống nhau.', 'warning');
+        return;
+      }
+      if (newPass === oldPass) {
+        showToast('Trùng mật khẩu!', 'Mật khẩu mới phải khác mật khẩu hiện tại.', 'warning');
+        return;
+      }
+
+      const originalLabel = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Đang mã hóa lại...</span>';
+      try {
+        const raw = await readVaultFile();
+        if (raw && raw.trim()) {
+          const verifyKey = await deriveVaultKey(oldPass, vaultSalt);
+          const stored = JSON.parse(raw);
+          await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: base64ToBytes(stored.iv) },
+            verifyKey,
+            base64ToBytes(stored.ciphertext)
+          );
+        }
+        const newSalt = crypto.getRandomValues(new Uint8Array(16));
+        const newKey = await deriveVaultKey(newPass, newSalt);
+        vaultSalt = newSalt;
+        vaultCryptoKey = newKey;
+        currentMasterPassword = newPass;
+        await saveVaultData();
+        closeChangePasswordModal();
+        document.getElementById('change-password-form').reset();
+        evaluateMasterStrength('');
+        showToast('Đổi mật khẩu thành công!', 'Vault đã được mã hóa lại với Master Password mới.', 'success');
+      } catch (err) {
+        console.error('Change master password failed:', err);
+        showToast('Đổi mật khẩu thất bại!', 'Không thể ghi DB. Hãy thử lại.', 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalLabel;
+        lucide.createIcons();
+      }
+    }
+
     // Database Export & Import
-    function exportDatabase() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(credentials, null, 2));
+    async function exportDatabase() {
+      const encryptedVault = await encryptVault(credentials);
+      const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(encryptedVault);
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `PasswordVault_Backup_${new Date().toISOString().slice(0,10)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast('Đã xuất Database', 'Tệp tin sao lưu JSON đã được tải về.', 'success');
+      showToast('Đã xuất Database', 'Tệp sao lưu AES-256-GCM đã được tải về.', 'success');
     }
 
     function importDatabase(event) {
@@ -1009,19 +1322,17 @@
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
-          const imported = JSON.parse(e.target.result);
+          const imported = await decryptVault(e.target.result);
           if (Array.isArray(imported)) {
             credentials = imported;
-            saveVaultData();
+            await saveVaultData();
             handleSearch();
-            showToast('Nhập Database thành công!', `Đã tải ${imported.length} bản ghi vào hệ thống.`, 'success');
-          } else {
-            showToast('Lỗi định dạng!', 'Tệp JSON không hợp lệ.', 'danger');
+            showToast('Nhập Database thành công!', `Đã tải ${imported.length} bản ghi mã hóa vào hệ thống.`, 'success');
           }
         } catch (err) {
-          showToast('Lỗi đọc file!', 'Không thể phân tích dữ liệu JSON.', 'danger');
+          showToast('Không thể nhập vault!', 'File không đúng mật khẩu hoặc đã bị sửa.', 'danger');
         }
       };
       reader.readAsText(file);

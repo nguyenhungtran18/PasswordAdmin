@@ -1,4 +1,4 @@
-# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.1.0</sup>
+# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.2.0</sup>
 
 ---
 
@@ -22,7 +22,7 @@
 
 **Bằng việc sử dụng phần mềm này, bạn hiểu và đồng ý với các nguyên tắc bảo mật Zero-Knowledge sau:**
 
-* **Không có cơ chế "Quên Mật Khẩu":** Mật khẩu chính (**Master Password**) là chìa khóa duy nhất để suy ra khóa mã hóa và giải mã dữ liệu của bạn. Không ai — kể cả tác giả hay bất kỳ hệ thống nào — có thể khôi phục lại dữ liệu nếu bạn làm mất Master Password (kể cả sau khi đổi mật khẩu mới).
+* **Khôi phục bằng Recovery Key (không còn "mất là hết"):** Két vault v2 dùng khóa mã hóa dữ liệu (DEK) được bọc 2 lớp độc lập — bằng Master Password **và** bằng Recovery Key 24 từ. Quên mật khẩu thì dùng Recovery Key để đặt lại (xem mục 6 bên dưới). **Ai giữ Recovery Key thì người đó mở được két** — đây là định nghĩa "chủ két" trong mô hình Zero-Knowledge (không tài khoản, không server xác thực). Mất **cả hai** (mật khẩu + Recovery Key) thì không ai — kể cả tác giả — cứu được dữ liệu.
 * **Tự Chủ Quyền Riêng Tư (Full Sovereignty):** Toàn bộ cơ sở dữ liệu Web UI được lưu trực tiếp trên máy cục bộ của bạn (`PasswordAdmin WebUI/PasswordVault.vault.json`, định dạng JSON mã hóa AES-256-GCM) hoặc tệp sao lưu JSON do bạn quản lý. Tệp `vault.tkvdb` là database của bản CLI TokenVector legacy, không phải DB mặc định của Web UI.
 * **Phần mềm được cung cấp nguyên trạng ("AS IS"):** Vui lòng lưu trữ Master Password và tạo bản sao lưu dữ liệu thường xuyên.
 
@@ -46,7 +46,9 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 - **Bảo Mật Bộ Đệm Tự Hủy (Auto-Purge Clipboard 10s):** Mật khẩu sao chép vào bộ nhớ tạm (Clipboard) sẽ tự động bị xóa sạch sau 10 giây để chống lại các mã độc theo dõi clipboard (Clipboard Hijackers).
 - **CSPRNG Lai (Bridge + Fallback):** Web UI ưu tiên gọi loopback server `GET http://127.0.0.1:8765/generate?length=N` (server gọi `crypto_engine.exe --generate`, chỉ nhận độ dài 8–64); khi server không chạy hoặc tắt ký tự đặc biệt/chữ số, fallback sang `window.crypto.getRandomValues` của trình duyệt.
 - **Tìm Kiếm Kép Đa Trường (Dual-Field Realtime Search):** Tra cứu độc lập hoặc kết hợp đồng thời theo Tên App và Tên User thời gian thực (lọc tuyến tính, phân biệt không dấu theo đúng chuỗi nhập).
-- **Đổi Master Password (Re-encrypt Vault):** Đổi mật khẩu đăng nhập/mở két ngay trong Web UI (nút chìa khóa trên header): xác thực mật khẩu cũ → sinh salt 16 bytes mới → suy khóa mới bằng PBKDF2 → mã hóa lại toàn bộ vault (AES-256-GCM) và ghi đè DB mặc định.
+- **Đổi Master Password (Re-wrap DEK):** Đổi mật khẩu đăng nhập/mở két ngay trong Web UI (nút chìa khóa trên header): xác thực mật khẩu cũ bằng cách mở thử DEK → bọc lại DEK bằng mật khẩu mới (salt mới) → ghi đè DB. Recovery Key giữ nguyên hiệu lực.
+- **Recovery Key 24 từ (BIP39):** Chìa khóa dự phòng khi quên mật khẩu — sinh ngẫu nhiên, hiện đúng 1 lần, xác nhận bằng cách nhập lại 3 từ. Ghi ra giấy, cất offline.
+- **Rate-limit + Nhật ký bảo mật:** Sai mật khẩu/key quá 5 lần thì tạm khóa 60 giây; mọi sự kiện (mở két, đổi pass, khôi phục, reset) ghi vào nhật ký cục bộ, xem lại trong modal "Khôi phục & Bảo mật".
 - **Giao Diện Kép Linh Hoạt (Dual-Interface):** Vừa hỗ trợ giao diện Web UI hiện đại (nền trắng chữ đen, tương phản cao), vừa hỗ trợ Native CLI cho môi trường dòng lệnh/terminal. Lưu ý: bản Web UI chính **yêu cầu chạy loopback server cục bộ** qua `Open_PasswordAdmin_Web.bat`, không phải "zero-server" hoàn toàn.
 
 ---
@@ -59,7 +61,8 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 4. **Quản Lý Cơ Sở Dữ Liệu Dạng Bảng (CRUD):** Xem danh sách, ẩn/hiện mật khẩu dạng `••••••••`, chỉnh sửa và xóa bản ghi với giao diện DataTable trực quan.
 5. **Sao Lưu & Di Chuyển Dữ Liệu (Backup & Restore):** Xuất toàn bộ vault **đang mã hóa AES-256-GCM** ra JSON (`PasswordVault_Backup_YYYY-MM-DD.json`) hoặc nạp tệp sao lưu (yêu cầu đúng Master Password/salt tương ứng) chỉ trong 1 thao tác.
 6. **Bảo Vệ Bằng Két Sắt Master Vault:** Khóa toàn bộ ứng dụng khi rời máy tính, giải mã lại tức thì bằng Master Password.
-7. **Đổi Mật Khẩu Đăng Nhập:** Đổi Master Password ngay trong Web UI mà không mất dữ liệu — vault được mã hóa lại với salt mới và lưu đè lên DB mặc định.
+7. **Đổi Mật Khẩu Đăng Nhập:** Đổi Master Password ngay trong Web UI mà không mất dữ liệu — DEK được bọc lại với salt mới và lưu đè lên DB mặc định (Recovery Key giữ nguyên).
+8. **Tạo Recovery Key & Tự Khôi Phục Khi Quên Mật Khẩu:** Tạo key 24 từ một lần, quên pass thì tự đặt lại ở màn hình khóa mà không mất dữ liệu. Mất cả pass lẫn key thì chỉ còn cách tạo két mới trắng.
 
 ---
 
@@ -72,7 +75,9 @@ Hạt nhân xử lý mật mã học và hệ thống chỉ mục tìm kiếm t�
 | **Core Language** | **[TokenVector](https://github.com/nguyenhungtran18/TokenVector)** (`.tkv`) | Module native cho CLI/engine mật mã & tìm kiếm |
 | **Search Engine (Web UI)** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
 | **CSPRNG Engine** | `crypto_bridge_server.exe` + `crypto_engine.exe --generate` (8–64 ký tự), fallback `crypto.getRandomValues` | Ưu tiên engine native, tự fallback khi server tắt |
-| **Vault Encryption** | PBKDF2-HMAC-SHA256 600.000 iterations → AES-256-GCM (salt 16 bytes, IV 12 bytes, JSON `{version, algorithm, kdf, salt, iv, ciphertext}`) | Zero-Knowledge: server/file chỉ thấy bản mã, không bao giờ thấy Master Password |
+| **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Zero-Knowledge: server/file chỉ thấy bản mã, không bao giờ thấy password/key |
+| **Recovery Key** | 24 từ BIP39 English (2048 từ, ~264-bit entropy) + PBKDF2-600k; hiện 1 lần, xác nhận 3 từ, hỗ trợ tải Emergency Kit `.txt` | Quên pass vẫn tự khôi phục, không cần ai khác |
+| **Chống đoán mò** | Sai quá 5 lần → khóa 60s (lưu localStorage) + nhật ký 100 sự kiện | Chống kẻ mượn máy đoán mò tại chỗ |
 | **Web Presentation** | HTML5 + Tailwind CSS + Lucide Icons | Nền trắng chữ đen (Light Mode), tương phản cao; bản Web UI chính cần loopback server `127.0.0.1:8765` |
 | **Auto-Purge Timer** | 10.000 ms (10 giây) | Xóa sạch clipboard tự động sau khi copy |
 
@@ -94,7 +99,7 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
 Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-📦 **Link Tải Trực Tiếp (bản cũ):** 👉 **[PasswordAdmin.zip (v1.0.0)](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v1.0.0/PasswordAdmin.zip)** — README này mô tả mã nguồn hiện tại (v2.1.0); nếu tải release cũ, một số tính năng (Đổi Master Password, bridge server 8765) có thể chưa có.
+📦 **Link Tải Trực Tiếp (bản cũ):** 👉 **[PasswordAdmin.zip (v1.0.0)](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v1.0.0/PasswordAdmin.zip)** — README này mô tả mã nguồn hiện tại (v2.2.0); nếu tải release cũ, một số tính năng (Recovery Key, Đổi Master Password, bridge server 8765) có thể chưa có.
 
 ---
 
@@ -113,9 +118,9 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
 2. **Đăng nhập lần đầu — mật khẩu mặc định là `123456`:**
    - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập `123456` vào ô *Master Password*.
-   - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính (DB đi kèm đã có sẵn 3 bản ghi demo).
-   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, Master Password được dùng để **suy khóa AES-256-GCM qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** theo bước 5 bên dưới!
-   - Trường hợp DB trống (xóa file vault / chạy bản root): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới.
+   - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính (DB đi kèm đã có sẵn 3 bản ghi demo; vault v1 legacy tự nâng lên v2 khi mở).
+   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, Master Password được dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong!
+   - Trường hợp DB trống (xóa file vault / chạy bản root): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới (sinh DEK mới, định dạng v2).
 
 3. **Tạo tài khoản & mật khẩu đầu tiên:**
    - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
@@ -130,7 +135,13 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 5. **Đổi Master Password ngay trong app (bắt buộc sau lần đăng nhập đầu):**
    - Sau khi đã mở két bằng `123456`, bấm biểu tượng **chìa khóa 🔑** trên thanh header (cạnh nút Khóa) để mở hộp thoại **"Đổi Master Password"**.
    - Nhập *mật khẩu hiện tại* (`123456`) → nhập *mật khẩu mới* (tối thiểu 8 ký tự, khuyến nghị 12–16, có thước đo mạnh/yếu) → *xác nhận lại* → bấm **"Đổi Mật Khẩu"**.
-   - App xác thực mật khẩu cũ bằng cách thử giải mã vault, sau đó sinh salt 16 bytes mới, suy khóa mới bằng PBKDF2 và **mã hóa lại toàn bộ vault (AES-256-GCM), ghi đè DB mặc định**. Từ lần sau dùng mật khẩu mới để đăng nhập — nếu quên là mất dữ liệu.
+   - App xác thực mật khẩu cũ bằng cách mở thử DEK, sau đó bọc lại DEK bằng mật khẩu mới (salt 16 bytes mới) và **ghi đè DB mặc định**. Recovery Key (nếu đã tạo) giữ nguyên hiệu lực. Từ lần sau dùng mật khẩu mới để đăng nhập.
+
+6. **Tạo Recovery Key + cách khôi phục khi quên mật khẩu:**
+   - **Tạo key:** Bấm icon **phao cứu sinh 🛟** trên header → **"Tạo Recovery Key (24 từ)"** → key hiện **đúng 1 lần**: ghi ra giấy/cất offline (hoặc tải file `.txt`), rồi nhập lại 3 từ được hỏi để kích hoạt. Muốn đổi key thì **"Xoay Recovery Key"** (key cũ vô hiệu ngay).
+   - **Quên mật khẩu:** Ở màn hình khóa bấm **"Quên mật khẩu? Khôi phục bằng Recovery Key"** → nhập đủ 24 từ → đặt Master Password mới → két mở lại, dữ liệu nguyên vẹn, Recovery Key giữ nguyên.
+   - **Mất cả hai:** Trong cùng màn hình khôi phục (hoặc modal Bảo mật khi đã mở két), gõ `XOA` để tạo két mới trắng — mất toàn bộ dữ liệu cũ, không hoàn tác.
+   - **Ai là chủ két?** App không có tài khoản/server nên không "xác minh danh tính" kiểu CCCD/email được — **ai giữ Recovery Key (hoặc nhớ mật khẩu) thì người đó là chủ**. Vì vậy: cất key như cất chìa khóa nhà. Sai quá 5 lần bị khóa 60s; mọi sự kiện ghi vào **Nhật ký bảo mật** (xem trong modal 🛟) để phát hiện truy cập lạ.
 
 ---
 
@@ -166,7 +177,7 @@ PasswordAdmin/
 ├── models.tkv / main.tkv / ui_desktop.tkv  # Thực thể dữ liệu & engine CLI
 ├── vault.tkvdb                  # DB của bản CLI legacy (plaintext `App|user|pass`), KHÔNG phải DB của Web UI
 ├── LICENSE                      # Giấy phép MIT License
-└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.1.0)
+└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.2.0)
 ```
 
 ---
@@ -176,7 +187,8 @@ PasswordAdmin/
 ### Quy Tắc Đặt Master Password:
 - App bắt buộc tối thiểu 8 ký tự khi đổi/mở két; **khuyến nghị 12 đến 16 ký tự trở lên**.
 - Kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
-- Tuyệt đối không chia sẻ hoặc lưu Master Password ở dạng văn bản thuần (plaintext) trên máy tính. Sao lưu file `PasswordVault.vault.json` thường xuyên — mất mật khẩu là mất dữ liệu.
+- Tuyệt đối không chia sẻ hoặc lưu Master Password ở dạng văn bản thuần (plaintext) trên máy tính. Sao lưu file `PasswordVault.vault.json` thường xuyên.
+- **Recovery Key: in ra giấy, cất tách khỏi máy tính** (két sắt/tủ hồ sơ). Không chụp màn hình, không lưu cloud/email/chat. Mất cả mật khẩu lẫn Recovery Key là mất dữ liệu — không có ngoại lệ.
 
 ```text
 ✅ Ví dụ mật khẩu an toàn:
@@ -196,7 +208,8 @@ PasswordAdmin/
 |:---|:---|:---|:---|
 | **v1.0.0** | TokenVector CLI | 📦 Legacy | Bản dựng ban đầu chạy trên console terminal với AOT compilation. |
 | **v2.0.0** | **TokenVector + Web UI** | 📦 Trước đây | Thêm Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
-| **v2.1.0** | **TokenVector + Web UI + Bridge** | 🚀 **Hiện tại (Current)** | Thêm **Đổi Master Password** (mã hóa lại vault với salt mới), loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
+| **v2.1.0** | **TokenVector + Web UI + Bridge** | 📦 Trước đây | Thêm **Đổi Master Password**, loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
+| **v2.2.0** | **TokenVector + Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục/reset két), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
 
 ---
 

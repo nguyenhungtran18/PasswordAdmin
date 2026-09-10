@@ -88,7 +88,7 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
 Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-📦 **Link Tải Trực Tiếp (bản cũ):** 👉 **[PasswordAdmin.zip (v1.0.0)](https://github.com/nguyenhungtran18/PasswordAdmin/releases/download/v1.0.0/PasswordAdmin.zip)** — README này mô tả mã nguồn hiện tại (v2.2.0); nếu tải release cũ, một số tính năng (Recovery Key, Đổi Master Password, bridge server 8765) có thể chưa có.
+📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin V2.2.0](https://github.com/nguyenhungtran18/PasswordAdmin/compare/v2.2.0)**
 
 ---
 

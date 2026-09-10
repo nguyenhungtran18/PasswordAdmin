@@ -625,7 +625,7 @@
         </div>
         <p class="text-[11px] text-slate-500 leading-relaxed bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
           Sau khi đổi, khóa két (DEK) sẽ được bọc lại bằng mật khẩu mới (salt mới + AES-256-GCM) và lưu đè lên DB mặc định. Recovery Key (nếu đã tạo) vẫn giữ nguyên.
-          Nếu quên cả mật khẩu mới lẫn Recovery Key, dữ liệu không thể khôi phục (Zero-Knowledge).
+          Nếu quên cả mật khẩu mới lẫn Recovery Key, dữ liệu không thể khôi phục (mã hóa phía máy khách).
         </p>
         <div class="flex items-center justify-end gap-2.5 pt-1">
           <button type="button" onclick="closeChangePasswordModal()"
@@ -802,7 +802,7 @@
           </div>
           <div>
             <h3 class="text-lg font-bold text-slate-900">Hướng dẫn sử dụng</h3>
-            <p class="text-[11px] text-slate-500">PasswordAdmin — két mật khẩu cục bộ (Zero-Knowledge)</p>
+            <p class="text-[11px] text-slate-500">PasswordAdmin — két mật khẩu cục bộ (mã hóa phía máy khách)</p>
           </div>
         </div>
         <button onclick="closeHelpModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all">

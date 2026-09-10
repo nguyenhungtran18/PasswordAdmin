@@ -2,10 +2,12 @@
 
 ---
 
-**Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Zero-Knowledge & CSPRNG).**  
+**Cơ sở dữ liệu quản lý tài khoản & công cụ tạo mật khẩu bảo mật cao (Mã hóa cục bộ & CSPRNG).**  
 **Tạo và quản lý thông tin đăng nhập với quy trình chuẩn mực — cục bộ hoàn toàn, không cloud, không gửi dữ liệu ra ngoài thiết bị.**
 
-**Local-First & Zero-Knowledge by Design**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, mã hóa và giải mã đều được thực hiện trực tiếp tại chỗ, **không cloud, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi vault và sinh mật khẩu qua `crypto_engine.exe`; toàn bộ lưu lượng không rời khỏi máy của bạn.
+**Local-First by Design (mã hóa phía máy khách)**: Khác với các trình quản lý mật khẩu truyền thống lưu trữ dữ liệu trên đám mây của bên thứ ba, **PasswordAdmin** hoạt động hoàn toàn cục bộ trên máy của bạn. Khóa bí mật không bao giờ rời khỏi thiết bị. Mọi thao tác suy khóa, bọc/mở khóa và giải mã vault đều diễn ra trong trình duyệt của bạn — **không cloud, không tài khoản, không gửi dữ liệu ra ngoài**. Bản Web UI chính (`PasswordAdmin WebUI/`) dùng thêm một **loopback server cục bộ** (`crypto_bridge_server.exe` tại `http://127.0.0.1:8765`) chỉ để đọc/ghi file vault (dạng bản mã) và sinh mật khẩu qua `crypto_engine.exe`; toàn bộ lưu lượng không rời khỏi `127.0.0.1`.
+
+*Ghi chú thuật ngữ: app **không** dùng zero-knowledge proof (giao thức chứng minh không tiết lộ tri thức). Bảo mật dựa trên mã hóa xác thực chuẩn **AES-256-GCM + PBKDF2-HMAC-SHA256 600.000 iterations**. Mọi chỗ trong tài liệu/bản cũ ghi "Zero-Knowledge" đều nên hiểu đúng là "mã hóa cục bộ, không server".*
 
 ---
 
@@ -19,9 +21,9 @@
 
 ## ⚠️ Lưu Ý Quan Trọng (Security Disclaimer)
 
-**Bằng việc sử dụng phần mềm này, bạn hiểu và đồng ý với các nguyên tắc bảo mật Zero-Knowledge sau:**
+**Bằng việc sử dụng phần mềm này, bạn hiểu và đồng ý với các nguyên tắc bảo mật cốt lõi sau:**
 
-* **Khôi phục bằng Recovery Key (không còn "mất là hết"):** Két vault v2 dùng khóa mã hóa dữ liệu (DEK) được bọc 2 lớp độc lập — bằng Master Password **và** bằng Recovery Key 24 từ. Quên mật khẩu thì dùng Recovery Key để đặt lại (xem mục 6 bên dưới). **Ai giữ Recovery Key thì người đó mở được két** — đây là định nghĩa "chủ két" trong mô hình Zero-Knowledge (không tài khoản, không server xác thực). Mất **cả hai** (mật khẩu + Recovery Key) thì không ai — kể cả tác giả — cứu được dữ liệu.
+* **Khôi phục bằng Recovery Key (không còn "mất là hết"):** Két vault v2 dùng khóa mã hóa dữ liệu (DEK) được bọc 2 lớp độc lập — bằng Master Password **và** bằng Recovery Key 24 từ. Quên mật khẩu thì dùng Recovery Key để đặt lại (xem mục 6 bên dưới). **Ai giữ Recovery Key thì người đó mở được két** — đây là định nghĩa "chủ két" trong mô hình local-only (không tài khoản, không server xác thực). Mất **cả hai** (mật khẩu + Recovery Key) thì không ai — kể cả tác giả — cứu được dữ liệu.
 * **Tự Chủ Quyền Riêng Tư (Full Sovereignty):** Toàn bộ cơ sở dữ liệu được lưu trực tiếp trên máy cục bộ của bạn (`PasswordAdmin WebUI/PasswordVault.vault.json`, định dạng JSON mã hóa AES-256-GCM) hoặc tệp sao lưu JSON do bạn quản lý.
 * **Phần mềm được cung cấp nguyên trạng ("AS IS"):** Vui lòng lưu trữ Master Password và tạo bản sao lưu dữ liệu thường xuyên.
 
@@ -62,7 +64,7 @@
 |:---|:---|:---|
 | **Search Engine** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
 | **CSPRNG Engine** | `crypto_bridge_server.exe` + `crypto_engine.exe --generate` (8–64 ký tự), fallback `crypto.getRandomValues` | Ưu tiên engine native, tự fallback khi server tắt |
-| **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Zero-Knowledge: server/file chỉ thấy bản mã, không bao giờ thấy password/key |
+| **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Mã hóa phía máy khách: Master Password và Recovery Key không bao giờ rời khỏi trình duyệt; file vault chỉ chứa bản mã. Ngoại lệ duy nhất: mật khẩu vừa sinh bằng bridge đi qua loopback HTTP (`127.0.0.1:8765`) dưới dạng plaintext — chỉ ở trong máy bạn, nhưng tiến trình local khác về lý thuyết có thể đọc được |
 | **Recovery Key** | 24 từ BIP39 English (2048 từ, ~264-bit entropy) + PBKDF2-600k; hiện 1 lần, xác nhận 3 từ, hỗ trợ tải Emergency Kit `.txt` | Quên pass vẫn tự khôi phục, không cần ai khác |
 | **Chống đoán mò** | Sai quá 5 lần → khóa 60s (lưu localStorage) + nhật ký 100 sự kiện | Chống kẻ mượn máy đoán mò tại chỗ |
 | **Web Presentation** | HTML5 + Tailwind CSS + Lucide Icons | Nền trắng chữ đen (Light Mode), tương phản cao; bản Web UI chính cần loopback server `127.0.0.1:8765` |
@@ -106,7 +108,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 2. **Đăng nhập lần đầu — mật khẩu mặc định là `123456`:**
    - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập `123456` vào ô *Master Password*.
    - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính (DB đi kèm đã có sẵn 3 bản ghi demo; vault v1 legacy tự nâng lên v2 khi mở).
-   - 💡 *Lưu ý quan trọng:* Vì hệ thống tuân thủ mô hình bảo mật Zero-Knowledge, Master Password được dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
+   - 💡 *Lưu ý quan trọng:* Vì hệ thống mã hóa phía máy khách (client-side), Master Password được dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
    - Trường hợp DB trống (xóa file vault / chạy bản root): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới (sinh DEK mới, định dạng v2).
 
 3. **Tạo tài khoản & mật khẩu đầu tiên:**

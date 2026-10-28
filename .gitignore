@@ -6,8 +6,8 @@
 Thumbs.db
 __pycache__/
 
-# Local runtime data (encrypted vault chứa dữ liệu người dùng)
-PasswordAdmin WebUI/PasswordVault.vault.json
+# Vault minh họa (nội dung ảo) được commit sẵn ở PasswordAdmin WebUI/PasswordVault.vault.json.
+# Nếu bạn đã thay bằng dữ liệu thật, đừng commit file đó lên repo công khai.
 
 # Local backups & packaged artifacts
 PasswordAdmin WebUI/backup/

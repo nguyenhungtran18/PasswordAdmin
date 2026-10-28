@@ -118,7 +118,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - ⚠️ Không nhấp đúp trực tiếp `index.html` qua `file://` vì Web UI cần loopback server `127.0.0.1:8765` để đọc/ghi vault và sinh mật khẩu — mở chay sẽ báo "Không thể đọc DB" / "Crypto server chưa chạy". Giữ cửa sổ server luôn mở. Dùng Google Chrome hoặc Microsoft Edge mới nhất.
 
 2. **Đăng nhập lần đầu — mật khẩu `123456`:**
-   - Bản phát hành **kèm sẵn một vault thật** `PasswordAdmin WebUI/PasswordVault.vault.json` (định dạng v2, mã hóa AES-256-GCM) để mở được ngay. **Nội dung bên trong chỉ là 3 bản ghi minh họa — không phải dữ liệu thật**, dùng để bạn xem giao diện; cứ xóa và thay bằng tài khoản của bạn (banner xanh trong app cũng nhắc điều này).
+   - Repo và bản phát hành **kèm sẵn một vault thật** `PasswordAdmin WebUI/PasswordVault.vault.json` (định dạng v2, mã hóa AES-256-GCM) để mở được ngay. **Nội dung bên trong chỉ là 3 bản ghi minh họa — không phải dữ liệu thật**, dùng để bạn xem giao diện; cứ xóa và thay bằng tài khoản của bạn (banner xanh trong app cũng nhắc điều này).
    - Tại màn hình **Két Sắt Mật Khẩu (Vault)**, nhập `123456` vào ô *Master Password* rồi bấm **"Mở Khóa Cơ Sở Dữ Liệu"**.
    - Nếu file vault **không tồn tại** (bạn đã xóa, hoặc tải bản chỉ có source), app coi là DB trống: mật khẩu bạn nhập lần đầu sẽ **trở thành Master Password** của vault mới (sinh salt 16 bytes + DEK mới, tự tạo file `PasswordVault.vault.json`). Nếu đang có vault khác, nhập đúng mật khẩu của vault đó (v1 legacy tự nâng lên v2).
    - 💡 *Lưu ý quan trọng:* Hệ thống mã hóa phía máy khách (client-side); Master Password dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). **Đổi ngay `123456`** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
@@ -156,7 +156,7 @@ PasswordAdmin/
 ├── PasswordAdmin WebUI/         # Entry-point chính
 │   ├── index.html               # Web UI (đọc/ghi vault qua loopback server 127.0.0.1:8765)
 │   ├── crypto_bridge_server.exe # Loopback server cục bộ (vault + sinh mật khẩu, tôn trọng ?length 8–64)
-│   └── PasswordVault.vault.json # Vault thật (AES-256-GCM) kèm trong gói phát hành, nội dung chỉ là mẫu minh họa; không commit lên repo
+│   └── PasswordVault.vault.json # Vault thật (AES-256-GCM) có sẵn trong repo + gói phát hành, nội dung chỉ là 3 bản ghi minh họa — xóa và thay bằng dữ liệu của bạn
 ├── Open_PasswordAdmin_Web.bat   # Entry-point duy nhất: chạy server trong PasswordAdmin WebUI/ rồi mở UI
 ├── crypto_bridge_server.il      # Mã nguồn IL của loopback server (build lại bằng ilasm)
 ├── LICENSE                      # Giấy phép MIT License

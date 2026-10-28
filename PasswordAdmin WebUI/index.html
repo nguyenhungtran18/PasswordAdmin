@@ -485,32 +485,99 @@
 
             <button 
               type="button" 
+              id="gen-btn"
               onclick="generateCSPRNGPassword()" 
-              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-200 transition-all"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-100"
             >
               <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
               <span data-i18n="gen_btn">Tạo Ngẫu Nhiên (CSPRNG)</span>
             </button>
           </div>
 
-          <!-- Password Field -->
-          <div class="relative">
-            <input 
-              type="text" 
-              id="entry-password" 
-              required 
-              data-i18n-ph="entry_pass_ph" placeholder="Nhập hoặc tạo mật khẩu an toàn..." 
-              oninput="evaluatePasswordStrength(this.value)"
-              class="w-full pl-3 pr-10 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-            />
-            <button 
-              type="button" 
-              onclick="copyQuickPassword(document.getElementById('entry-password').value)" 
-              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
-              data-i18n-title="copy_quick_title" title="Sao chép nhanh"
+          <!-- Chọn nguồn mật khẩu: chỉ dùng 1 loại -->
+          <div class="flex items-center gap-1 p-1 rounded-xl bg-slate-200/70 border border-slate-200" role="radiogroup" aria-label="Nguồn mật khẩu">
+            <button
+              type="button"
+              id="src-auto-btn"
+              role="radio"
+              aria-checked="true"
+              onclick="setPasswordSource('auto')"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-slate-900 shadow-sm border border-slate-200 transition-all"
             >
-              <i data-lucide="copy" class="w-4 h-4"></i>
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span data-i18n="src_auto_btn">Máy tạo (CSPRNG)</span>
             </button>
+            <button
+              type="button"
+              id="src-own-btn"
+              role="radio"
+              aria-checked="false"
+              onclick="setPasswordSource('own')"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-all"
+            >
+              <i data-lucide="pencil-line" class="w-3.5 h-3.5"></i>
+              <span data-i18n="src_own_btn">Tôi tự nhập</span>
+            </button>
+          </div>
+
+          <!-- Password Field: máy tự tạo -->
+          <div id="auto-pass-block" class="space-y-1.5 transition-opacity">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="font-semibold text-slate-600" data-i18n="auto_pass_label">Mật khẩu tự tạo (CSPRNG)</span>
+            </div>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="entry-password" 
+                data-i18n-ph="entry_pass_ph" placeholder="Nhập hoặc tạo mật khẩu an toàn..." 
+                oninput="evaluateActivePassword()"
+                class="w-full pl-3 pr-10 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-slate-100 disabled:text-slate-400"
+              />
+              <button 
+                type="button" 
+                onclick="copyQuickPassword(document.getElementById('entry-password').value)" 
+                class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
+                data-i18n-title="copy_quick_title" title="Sao chép nhanh"
+              >
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Password Field: mật khẩu của tôi (tự nhập) -->
+          <div id="own-pass-block" class="space-y-1.5 transition-opacity">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="font-semibold text-slate-600" data-i18n="own_pass_label">Mật khẩu của tôi (tự nhập)</span>
+            </div>
+            <div class="relative">
+              <input 
+                type="password" 
+                id="entry-password-own" 
+                autocomplete="off"
+                data-i18n-ph="own_pass_ph" placeholder="Gõ mật khẩu bạn đang dùng cho tài khoản này..." 
+                oninput="evaluateActivePassword()"
+                class="w-full pl-3 pr-20 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400"
+              />
+              <div class="absolute right-1.5 top-1.5 flex items-center gap-0.5">
+                <button 
+                  type="button" 
+                  onclick="toggleOwnPasswordVisibility()" 
+                  id="own-pass-eye"
+                  class="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                  data-i18n-title="showhide_title" title="Hiện/ẩn"
+                >
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+                <button 
+                  type="button" 
+                  onclick="copyQuickPassword(document.getElementById('entry-password-own').value)" 
+                  class="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                  data-i18n-title="copy_quick_title" title="Sao chép nhanh"
+                >
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Strength Bar & Entropy -->
@@ -529,7 +596,7 @@
           </div>
 
           <!-- CSPRNG Configuration Options -->
-          <div class="pt-2 border-t border-slate-200 space-y-2.5">
+          <div id="gen-config" class="pt-2 border-t border-slate-200 space-y-2.5 transition-opacity">
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-600" data-i18n="gen_len">Độ dài ký tự:</span>
               <span id="length-val" class="font-mono font-bold text-slate-900">20</span>
@@ -540,7 +607,7 @@
               min="10" 
               max="64" 
               value="20" 
-              oninput="document.getElementById('length-val').innerText = this.value; generateCSPRNGPassword();"
+              oninput="onSliderLengthChange(this.value)"
               class="w-full accent-blue-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
             />
 
@@ -932,6 +999,11 @@
         step2_label: 'Tạo Mật Khẩu (Key)',
         gen_btn: 'Tạo Ngẫu Nhiên (CSPRNG)',
         entry_pass_ph: 'Nhập hoặc tạo mật khẩu an toàn...',
+        auto_pass_label: 'Mật khẩu tự tạo (CSPRNG)',
+        src_auto_btn: 'Máy tạo (CSPRNG)',
+        src_own_btn: 'Tôi tự nhập',
+        own_pass_label: 'Mật khẩu của tôi (tự nhập)',
+        own_pass_ph: 'Gõ mật khẩu bạn đang dùng cho tài khoản này...',
         copy_quick_title: 'Sao chép nhanh',
         sec_label: 'Độ bảo mật:',
         strength_none: 'Chưa nhập',
@@ -1173,6 +1245,11 @@
         step2_label: 'Create Password (Key)',
         gen_btn: 'Random Generate (CSPRNG)',
         entry_pass_ph: 'Enter or generate a secure password...',
+        auto_pass_label: 'Generated password (CSPRNG)',
+        src_auto_btn: 'Auto-generate (CSPRNG)',
+        src_own_btn: 'I type my own',
+        own_pass_label: 'My own password (manual)',
+        own_pass_ph: 'Type the password you already use for this account...',
         copy_quick_title: 'Quick copy',
         sec_label: 'Security:',
         strength_none: 'Not entered',
@@ -1933,7 +2010,27 @@
     }
 
     // CSPRNG Password Generator
+    // Tránh race condition: mỗi lần kéo thanh trượt có thể bắn nhiều request,
+    // response cũ về sau sẽ ghi đè mật khẩu mới (độ dài hiển thị bị lệch).
+    let passwordGenSeq = 0;
+    let sliderGenTimer = null;
+
+    function onSliderLengthChange(value) {
+      document.getElementById('length-val').innerText = value;
+      if (sliderGenTimer) clearTimeout(sliderGenTimer);
+      sliderGenTimer = setTimeout(() => {
+        sliderGenTimer = null;
+        generateCSPRNGPassword();
+      }, 150);
+    }
+
     async function generateCSPRNGPassword() {
+      if (sliderGenTimer) {
+        clearTimeout(sliderGenTimer);
+        sliderGenTimer = null;
+      }
+
+      const seq = ++passwordGenSeq;
       const length = parseInt(document.getElementById('gen-length').value, 10) || 20;
       const useSymbols = document.getElementById('gen-symbols').checked;
       const useNumbers = document.getElementById('gen-numbers').checked;
@@ -1941,18 +2038,25 @@
       if (useSymbols && useNumbers) {
         try {
           const response = await fetch(`http://127.0.0.1:8765/generate?length=${length}`);
+          if (seq !== passwordGenSeq) return; // đã có request mới hơn
           if (response.ok) {
             const payload = await response.json();
-            if (payload.password) {
+            if (seq !== passwordGenSeq) return;
+            // Bản server cũ bỏ qua ?length (luôn trả 20 ký tự):
+            // chỉ nhận khi đúng độ dài đang chọn, ngược lại sinh tiếp bên dưới.
+            if (payload.password && payload.password.length === length) {
               document.getElementById('entry-password').value = payload.password;
-              evaluatePasswordStrength(payload.password);
+              evaluateActivePassword();
               return;
             }
           }
         } catch (error) {
+          if (seq !== passwordGenSeq) return;
           // Use the browser generator when the local bridge is not running.
         }
       }
+
+      if (seq !== passwordGenSeq) return;
 
       let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
       if (useNumbers) charset += '0123456789';
@@ -1967,7 +2071,80 @@
       }
 
       document.getElementById('entry-password').value = result;
-      evaluatePasswordStrength(result);
+      evaluateActivePassword();
+    }
+
+    // Nguồn mật khẩu: 'auto' (máy tạo) hoặc 'own' (tự nhập) — chỉ dùng 1 loại
+    let passwordSource = 'auto';
+
+    function getActivePassword() {
+      const target = passwordSource === 'own'
+        ? document.getElementById('entry-password-own')
+        : document.getElementById('entry-password');
+      return target ? target.value : '';
+    }
+
+    function evaluateActivePassword() {
+      return evaluatePasswordStrength(getActivePassword());
+    }
+
+    function setPasswordSource(source, options) {
+      const opts = options || {};
+      passwordSource = source === 'own' ? 'own' : 'auto';
+      const isAuto = passwordSource === 'auto';
+
+      const autoInput = document.getElementById('entry-password');
+      const ownInput = document.getElementById('entry-password-own');
+      const autoBlock = document.getElementById('auto-pass-block');
+      const ownBlock = document.getElementById('own-pass-block');
+      const genBtn = document.getElementById('gen-btn');
+      const config = document.getElementById('gen-config');
+      const autoBtn = document.getElementById('src-auto-btn');
+      const ownBtn = document.getElementById('src-own-btn');
+
+      const activeCls = 'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-slate-900 shadow-sm border border-slate-200 transition-all';
+      const idleCls = 'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-all';
+
+      if (autoBtn) {
+        autoBtn.className = isAuto ? activeCls : idleCls;
+        autoBtn.setAttribute('aria-checked', String(isAuto));
+      }
+      if (ownBtn) {
+        ownBtn.className = isAuto ? idleCls : activeCls;
+        ownBtn.setAttribute('aria-checked', String(!isAuto));
+      }
+
+      if (autoInput) autoInput.disabled = !isAuto;
+      if (ownInput) ownInput.disabled = isAuto;
+      if (genBtn) genBtn.disabled = !isAuto;
+
+      if (autoBlock) autoBlock.classList.toggle('opacity-40', !isAuto);
+      if (ownBlock) ownBlock.classList.toggle('opacity-40', isAuto);
+
+      if (config) {
+        config.classList.toggle('opacity-40', !isAuto);
+        config.classList.toggle('pointer-events-none', !isAuto);
+        config.querySelectorAll('input').forEach(el => { el.disabled = !isAuto; });
+      }
+
+      evaluateActivePassword();
+
+      if (isAuto && !opts.skipGenerate) {
+        generateCSPRNGPassword();
+      } else if (!isAuto && !opts.skipFocus && ownInput) {
+        ownInput.focus();
+      }
+    }
+
+    function toggleOwnPasswordVisibility() {
+      const input = document.getElementById('entry-password-own');
+      const eyeBtn = document.getElementById('own-pass-eye');
+      if (!input) return;
+
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      if (eyeBtn) eyeBtn.innerHTML = `<i data-lucide="${show ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+      if (window.lucide) lucide.createIcons();
     }
 
     // Password Strength & Entropy Evaluator
@@ -2037,13 +2214,15 @@
       document.getElementById('entry-app').value = '';
       document.getElementById('entry-user').value = '';
       document.getElementById('entry-password').value = '';
+      document.getElementById('entry-password-own').value = '';
+      document.getElementById('entry-password-own').type = 'password';
       document.getElementById('entry-category').value = 'Công việc';
       document.getElementById('gen-length').value = 20;
       document.getElementById('length-val').innerText = '20';
 
-      generateCSPRNGPassword();
-
       document.getElementById('credential-modal').classList.remove('hidden');
+
+      setPasswordSource('auto');
       document.getElementById('entry-app').focus();
     }
 
@@ -2055,11 +2234,15 @@
       document.getElementById('entry-id').value = item.id;
       document.getElementById('entry-app').value = item.app;
       document.getElementById('entry-user').value = item.user;
-      document.getElementById('entry-password').value = item.password;
+      document.getElementById('entry-password').value = '';
+      document.getElementById('entry-password-own').value = item.password;
+      document.getElementById('entry-password-own').type = 'password';
       document.getElementById('entry-category').value = item.category || 'Công việc';
-      evaluatePasswordStrength(item.password);
 
       document.getElementById('credential-modal').classList.remove('hidden');
+
+      setPasswordSource('own', { skipFocus: true });
+      evaluateActivePassword();
     }
 
     function closeCredentialModal() {
@@ -2072,10 +2255,10 @@
       const id = document.getElementById('entry-id').value;
       const app = document.getElementById('entry-app').value.trim();
       const user = document.getElementById('entry-user').value.trim();
-      const password = document.getElementById('entry-password').value;
+      const password = getActivePassword();
       const category = document.getElementById('entry-category').value;
 
-      if (!app || !user || !password) {
+      if (!app || !user || !password.trim()) {
         showToast(t('form_missing_title'), t('form_missing_msg'), 'warning');
         return;
       }

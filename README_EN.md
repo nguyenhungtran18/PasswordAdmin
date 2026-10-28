@@ -1,4 +1,4 @@
-# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.2.0</sup>
+# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.3.0</sup>
 
 🌐 Bản tiếng Việt: [README.md](README.md)
 
@@ -37,7 +37,7 @@
 
 - **Strict Mandatory Pre-Declaration:** You must declare (1) the Application/Service name and (2) the Username/Email before creating or saving a password.
 - **Self-Destructing Clipboard (Auto-Purge 10s):** A copied password is wiped from the clipboard automatically after 10 seconds to defeat clipboard-hijacking malware.
-- **Hybrid CSPRNG (Bridge + Fallback):** The Web UI prefers the loopback server `GET http://127.0.0.1:8765/generate?length=N` (the server generates passwords internally and **always returns a fixed 20 characters** regardless of the requested `length`); the bridge is only called when both special characters + digits are enabled, otherwise it falls back to the browser's `window.crypto.getRandomValues`.
+- **Hybrid CSPRNG (Bridge + Fallback):** The Web UI prefers the loopback server `GET http://127.0.0.1:8765/generate?length=N` — the server honors `length` within **8–64** (missing or invalid values fall back to the CLI default, `20`); the bridge is only called when both special characters + digits are enabled, otherwise it falls back to the browser's `window.crypto.getRandomValues`. Passwords with the wrong length, or stale responses arriving late while dragging the slider, are discarded and regenerated locally with the exact requested length.
 - **Dual-Field Realtime Search:** Search independently or combined by App name and Username in realtime (linear filtering, matched literally as typed).
 - **Change Master Password (Re-wrap DEK):** Change your login/vault password right in the Web UI (key button on the header): the old password is verified by trial-unwrapping the DEK → the DEK is re-wrapped with the new password (new salt) → DB overwritten. The Recovery Key stays valid.
 - **24-word Recovery Key (BIP39):** A spare key for when you forget your password — randomly generated, shown exactly once, activated by re-typing 3 words. Write it on paper, store offline.
@@ -48,8 +48,8 @@
 
 ## 💎 What You Can Do
 
-1. **Guided Password Creation:** Enter App & User info first, then generate a CSPRNG password with 1 click.
-2. **Length & Complexity Tuning:** Length slider from 10 to 64 characters (only effective when one option checkbox is off or the server is down — the default bridge path always returns a fixed 20 characters), toggle special characters and digits. *No option to exclude look-alike characters (`l`, `1`, `I`, `0`, `O`) yet.*
+1. **Guided Password Creation:** Enter App & User info first, then pick the password source with the two option buttons: **Auto-generate (CSPRNG)** or **I type my own** — each record saves exactly the selected source.
+2. **Length & Complexity Tuning:** The 10–64 character slider is applied exactly by both the internal engine and the browser fallback; toggle special characters and digits. *No option to exclude look-alike characters (`l`, `1`, `I`, `0`, `O`) yet.*
 3. **Realtime Entropy Meter:** Mathematical entropy ($E = L \times \log_2(N)$) plus brute-force time estimates. Ratings also account for minimum lengths (8/12/16 characters).
 4. **Tabular Database Management (CRUD):** List view, show/hide passwords as `••••••••`, edit and delete records in a visual DataTable.
 5. **Backup & Migrate (Backup & Restore):** Export the whole **AES-256-GCM encrypted** vault to JSON (`PasswordVault_Backup_YYYY-MM-DD.json`) or import a backup file (requires the matching Master Password/salt) in 1 step.
@@ -75,7 +75,7 @@ The native core of **PasswordAdmin** (the `crypto_bridge_server.exe` loopback se
 | Component | Technical Spec | Purpose & Benefit |
 |:---|:---|:---|
 | **Search Engine** | Linear filter by App + User ($O(N)$) | Fast enough at a few thousand records, realtime search |
-| **CSPRNG Engine** | loopback server `crypto_bridge_server.exe` (port 8765, always returns 20 characters; only called when both special characters + digits are enabled), fallback `crypto.getRandomValues` | Prefer the internal server, auto-fallback when the server is off or an option is unchecked |
+| **CSPRNG Engine** | loopback server `crypto_bridge_server.exe` (port 8765; honors `?length=N` within 8–64, defaults from the CLI; only called when both special characters + digits are enabled), fallback `crypto.getRandomValues` | Prefer the internal server, auto-fallback when the server is off or an option is unchecked; the UI only accepts results matching the selected length |
 | **Vault Encryption** | Vault **v2 (envelope)**: random 256-bit DEK encrypts records (AES-256-GCM); DEK independently double-wrapped with KEK = PBKDF2-HMAC-SHA256 600,000 iterations from (a) Master Password, (b) 24-word Recovery Key. Legacy v1 vaults auto-migrate on unlock. | Client-side encryption: Master Password and Recovery Key never leave the browser; the vault file holds only ciphertext. Sole exception: bridge-generated passwords travel over loopback HTTP (`127.0.0.1:8765`) as plaintext — only inside your machine, though other local processes could theoretically read them |
 | **Recovery Key** | 24 BIP39 English words (2048 words, ~264-bit entropy) + PBKDF2-600k; shown once, 3-word confirmation, Emergency Kit `.txt` download support | Self-recover a forgotten password, no one else needed |
 | **Brute-force Protection** | More than 5 failures → 60s lockout (stored in localStorage) + 100-event log | Stops casual guessing with borrowed machine access |
@@ -100,7 +100,7 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Download the Pre-built Package
 Get the official pre-built package from GitHub:
 
-📦 **Direct Download Link:** 👉 **[PasswordAdmin V2.2.0](https://github.com/nguyenhungtran18/PasswordAdmin/compare/v2.2.0)**
+📦 **Direct Download Link:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases)**
 
 ---
 
@@ -114,7 +114,7 @@ Get the official pre-built package from GitHub:
 ### 3. First-Time Setup
 
 1. **Launch the app (the .bat file is mandatory):**
-   - Double-click **`Open_PasswordAdmin_Web.bat`**. It does 2 things: starts `crypto_bridge_server.exe --server 8765`, then opens `PasswordAdmin WebUI/index.html`.
+   - Double-click **`Open_PasswordAdmin_Web.bat`**. It does 2 things: starts `crypto_bridge_server.exe --server 8765 20` (port 8765, default length 20 when a request has no `length`), then opens `PasswordAdmin WebUI/index.html`.
    - ⚠️ Do not double-click `index.html` directly via `file://` — the Web UI needs the loopback server `127.0.0.1:8765` to read/write the vault and generate passwords; opening it bare reports "Cannot read DB" / "Crypto server not running". Keep the server window open. Use the latest Google Chrome or Microsoft Edge.
 
 2. **First login — the default password is `123456`:**
@@ -126,7 +126,10 @@ Get the official pre-built package from GitHub:
 3. **Create your first account & password:**
    - Press **"Tạo Key Mới" (Create New Key)** (blue button, top right).
    - **Step 1 (mandatory):** enter the *Application / Service name* (e.g. `Google`, `GitHub`, `Binance`...) and *Username / Email* (e.g. `security_admin@gmail.com`).
-   - **Step 2 (create the key):** press **"Tạo Ngẫu Nhiên (CSPRNG)" (Generate Random)** and the app generates a 20-character *Very Strong* password, or type your own.
+   - **Step 2 (create the key):** pick the source with the two option buttons above the input:
+     - **Auto-generate (CSPRNG):** press **"Generate Random"** or drag the 10–64 slider — the generated password always matches the selected length.
+     - **I type my own:** type the password you already use (with show/hide and copy buttons).
+     Only the selected source is saved; the other one is dimmed and locked, so it cannot be typed or generated.
    - Press **"Lưu Vào Database" (Save to Database)** to finish your first record!
 
 4. **Safe copying with Auto-Purge Clipboard:**
@@ -157,9 +160,9 @@ PasswordAdmin/
 │   └── Open_PasswordAdmin_Web.bat # 1-click: runs the server then opens the Web UI (note: fix the extra `"` at the end of the start line)
 ├── index.html                   # Web UI variant using the File System Access API (showSaveFilePicker, Chrome/Edge)
 ├── Open_PasswordAdmin_Web.bat   # 1-click opener for the main Web UI + server (target already switched to PasswordAdmin WebUI/)
-├── crypto_bridge.py / .exe                # HTTP bridge: vault read/write + password generation (always returns 20 characters)
+├── crypto_bridge.py / .exe                # HTTP bridge: vault read/write + password generation (honors `?length=`, 8–64)
 ├── LICENSE                      # MIT License
-└── README.md                    # Vietnamese usage docs & technical spec (v2.2.0)
+└── README.md                    # Vietnamese usage docs & technical spec (v2.3.0)
 ```
 
 ---
@@ -190,7 +193,8 @@ PasswordAdmin/
 |:---|:---|:---|:---|
 | **v2.0.0** | **Web UI** | 📦 Older | Light-theme Web UI with full UI components, standardized App/User-first key flow, dual search bar, 10s Auto-Purge Clipboard countdown. |
 | **v2.1.0** | **Web UI + Bridge** | 📦 Older | **Change Master Password**, loopback server `127.0.0.1:8765` for vault read/write + native password generation, fixed copy of special-character passwords, clarified AES-256-GCM/PBKDF2-600k spec. |
-| **v2.2.0** | **Web UI + Recovery** | 🚀 **Current** | Vault **v2 envelope** (DEK + dual password/recovery wrap), **24-word BIP39 Recovery Key** (create/rotate/recover by typing or loading a `.txt` file, **auto-export on activation**), **5-fails/60s rate-limit + security audit log**, auto v1→v2 migration on unlock, **no vault-delete function**, **Help** button with an in-dashboard guide. (Planned: Windows Hello unlock, cancellable recovery delay.) |
+| **v2.2.0** | **Web UI + Recovery** | 📦 Older | Vault **v2 envelope** (DEK + dual password/recovery wrap), **24-word BIP39 Recovery Key** (create/rotate/recover by typing or loading a `.txt` file, **auto-export on activation**), **5-fails/60s rate-limit + security audit log**, auto v1→v2 migration on unlock, **no vault-delete function**, **Help** button with an in-dashboard guide. (Planned: Windows Hello unlock, cancellable recovery delay.) |
+| **v2.3.0** | **Web UI + Bridge** | 🚀 **Current** | **Password source choice**: option buttons *Auto-generate (CSPRNG)* / *I type my own* — only the selected source is saved, the other is dimmed and locked; the manual field has show/hide + copy. **Bridge honors `?length=` (8–64)** with the CLI default as fallback and binds the actual `--server <port> <len>` port; the UI discards wrong-length or stale (slider-race) responses so the password always matches the slider. |
 
 ---
 

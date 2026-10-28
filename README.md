@@ -1,4 +1,4 @@
-# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.2.0</sup>
+# PasswordAdmin (Enterprise Credential Vault & Smart Password Generator) <sup>v2.3.0</sup>
 
 🌐 English version: [README_EN.md](README_EN.md)
 
@@ -37,7 +37,7 @@
 
 - **Quy Trình Khai Báo Nghiêm Ngặt (Mandatory Pre-Declaration):** Người dùng bắt buộc phải khai báo (1) Tên Ứng dụng/Dịch vụ và (2) Tên Người dùng/Email trước khi tiến hành tạo hoặc lưu mật khẩu.
 - **Bảo Mật Bộ Đệm Tự Hủy (Auto-Purge Clipboard 10s):** Mật khẩu sao chép vào bộ nhớ tạm (Clipboard) sẽ tự động bị xóa sạch sau 10 giây để chống lại các mã độc theo dõi clipboard (Clipboard Hijackers).
-- **CSPRNG Lai (Bridge + Fallback):** Web UI ưu tiên gọi loopback server `GET http://127.0.0.1:8765/generate?length=N` (server sinh mật khẩu nội bộ, **luôn trả cố định 20 ký tự** bất kể `length` yêu cầu); chỉ gọi bridge khi bật cả ký tự đặc biệt + chữ số, còn lại fallback sang `window.crypto.getRandomValues` của trình duyệt.
+- **CSPRNG Lai (Bridge + Fallback):** Web UI ưu tiên gọi loopback server `GET http://127.0.0.1:8765/generate?length=N` — server tôn trọng `length` trong khoảng **8–64** (thiếu hoặc sai thì dùng độ dài mặc định của dòng lệnh, mặc định `20`); chỉ gọi bridge khi bật cả ký tự đặc biệt + chữ số, còn lại fallback sang `window.crypto.getRandomValues` của trình duyệt. Mật khẩu trả về sai độ dài, hoặc phản hồi cũ về muộn khi đang kéo thanh trượt, đều bị bỏ qua và sinh lại cục bộ đúng số ký tự.
 - **Tìm Kiếm Kép Đa Trường (Dual-Field Realtime Search):** Tra cứu độc lập hoặc kết hợp đồng thời theo Tên App và Tên User thời gian thực (lọc tuyến tính, phân biệt không dấu theo đúng chuỗi nhập).
 - **Đổi Master Password (Re-wrap DEK):** Đổi mật khẩu đăng nhập/mở két ngay trong Web UI (nút chìa khóa trên header): xác thực mật khẩu cũ bằng cách mở thử DEK → bọc lại DEK bằng mật khẩu mới (salt mới) → ghi đè DB. Recovery Key giữ nguyên hiệu lực.
 - **Recovery Key 24 từ (BIP39):** Chìa khóa dự phòng khi quên mật khẩu — sinh ngẫu nhiên, hiện đúng 1 lần, xác nhận bằng cách nhập lại 3 từ. Ghi ra giấy, cất offline.
@@ -48,8 +48,8 @@
 
 ## 💎 Những Điều Bạn Có Thể Làm (What You Can Do)
 
-1. **Tạo Mật Khẩu Chuẩn Quy Trình:** Nhập thông tin App & User trước, sau đó bấm tạo mật khẩu ngẫu nhiên CSPRNG với 1 click.
-2. **Tùy Biến Độ Dài & Độ Phức Tạp:** Thanh trượt độ dài 10 đến 64 ký tự (chỉ có tác dụng khi tắt bớt 1 ô tùy chọn hoặc server tắt — đường bridge mặc định luôn trả cố định 20 ký tự), bật/tắt ký tự đặc biệt và chữ số. *Hiện tại chưa có tùy chọn loại bỏ ký tự dễ nhầm (`l`, `1`, `I`, `0`, `O`).*
+1. **Tạo Mật Khẩu Chuẩn Quy Trình:** Nhập thông tin App & User trước, sau đó chọn nguồn mật khẩu bằng 2 nút option: **Máy tạo (CSPRNG)** hoặc **Tôi tự nhập** — mỗi bản ghi chỉ lưu đúng 1 nguồn đang chọn.
+2. **Tùy Biến Độ Dài & Độ Phức Tạp:** Thanh trượt độ dài 10 đến 64 ký tự áp dụng chính xác cho cả engine nội bộ lẫn fallback của trình duyệt, bật/tắt ký tự đặc biệt và chữ số. *Hiện tại chưa có tùy chọn loại bỏ ký tự dễ nhầm (`l`, `1`, `I`, `0`, `O`).*
 3. **Đo Lường Entropy Thời Gian Thực:** Thước đo Entropy toán học ($E = L \times \log_2(N)$) và ước tính thời gian Brute-force bẻ khóa. Xếp hạng còn xét thêm độ dài tối thiểu (8/12/16 ký tự).
 4. **Quản Lý Cơ Sở Dữ Liệu Dạng Bảng (CRUD):** Xem danh sách, ẩn/hiện mật khẩu dạng `••••••••`, chỉnh sửa và xóa bản ghi với giao diện DataTable trực quan.
 5. **Sao Lưu & Di Chuyển Dữ Liệu (Backup & Restore):** Xuất toàn bộ vault **đang mã hóa AES-256-GCM** ra JSON (`PasswordVault_Backup_YYYY-MM-DD.json`) hoặc nạp tệp sao lưu (yêu cầu đúng Master Password/salt tương ứng) chỉ trong 1 thao tác.
@@ -75,7 +75,7 @@ Phần lõi native của **PasswordAdmin** (loopback server `crypto_bridge_serve
 | Thành phần | Đặc tả kỹ thuật | Mục đích & Lợi ích |
 |:---|:---|:---|
 | **Search Engine** | Lọc tuyến tính theo App + User ($O(N)$) | Đủ nhanh ở quy mô vài nghìn bản ghi, tìm kiếm thời gian thực |
-| **CSPRNG Engine** | loopback server `crypto_bridge_server.exe` (port 8765, luôn trả 20 ký tự; chỉ gọi khi bật cả ký tự đặc biệt + chữ số), fallback `crypto.getRandomValues` | Ưu tiên server nội bộ, tự fallback khi server tắt hoặc tắt bớt tùy chọn |
+| **CSPRNG Engine** | loopback server `crypto_bridge_server.exe` (port 8765; tôn trọng `?length=N` trong khoảng 8–64, mặc định lấy từ dòng lệnh; chỉ gọi khi bật cả ký tự đặc biệt + chữ số), fallback `crypto.getRandomValues` | Ưu tiên server nội bộ, tự fallback khi server tắt hoặc tắt bớt tùy chọn; UI chỉ nhận kết quả đúng độ dài đang chọn |
 | **Vault Encryption** | Vault **v2 (envelope)**: DEK-256 ngẫu nhiên mã hóa records (AES-256-GCM); DEK bọc 2 lớp độc lập bằng KEK = PBKDF2-HMAC-SHA256 600.000 iterations từ (a) Master Password, (b) Recovery Key 24 từ. Vault v1 legacy tự migrate khi mở két. | Mã hóa phía máy khách: Master Password và Recovery Key không bao giờ rời khỏi trình duyệt; file vault chỉ chứa bản mã. Ngoại lệ duy nhất: mật khẩu vừa sinh bằng bridge đi qua loopback HTTP (`127.0.0.1:8765`) dưới dạng plaintext — chỉ ở trong máy bạn, nhưng tiến trình local khác về lý thuyết có thể đọc được |
 | **Recovery Key** | 24 từ BIP39 English (2048 từ, ~264-bit entropy) + PBKDF2-600k; hiện 1 lần, xác nhận 3 từ, hỗ trợ tải Emergency Kit `.txt` | Quên pass vẫn tự khôi phục, không cần ai khác |
 | **Chống đoán mò** | Sai quá 5 lần → khóa 60s (lưu localStorage) + nhật ký 100 sự kiện | Chống kẻ mượn máy đoán mò tại chỗ |
@@ -100,7 +100,7 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
 Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin V2.2.0](https://github.com/nguyenhungtran18/PasswordAdmin/compare/v2.2.0)**
+📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases)**
 
 ---
 
@@ -114,7 +114,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 ### 3. Hướng Dẫn Vào Phần Mềm Lần Đầu Tiên (First-Time Setup)
 
 1. **Khởi chạy ứng dụng (bắt buộc dùng file .bat):**
-   - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`**. File này làm 2 việc: khởi động `crypto_bridge_server.exe --server 8765` rồi mở `PasswordAdmin WebUI/index.html`.
+   - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`**. File này làm 2 việc: khởi động `crypto_bridge_server.exe --server 8765 20` (cổng 8765, độ dài mặc định 20 khi request không truyền `length`) rồi mở `PasswordAdmin WebUI/index.html`.
    - ⚠️ Không nhấp đúp trực tiếp `index.html` qua `file://` vì Web UI cần loopback server `127.0.0.1:8765` để đọc/ghi vault và sinh mật khẩu — mở chay sẽ báo "Không thể đọc DB" / "Crypto server chưa chạy". Giữ cửa sổ server luôn mở. Dùng Google Chrome hoặc Microsoft Edge mới nhất.
 
 2. **Đăng nhập lần đầu — mật khẩu mặc định là `123456`:**
@@ -126,7 +126,10 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 3. **Tạo tài khoản & mật khẩu đầu tiên:**
    - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
    - **Bước 1 (Khai báo bắt buộc):** Nhập *Tên Ứng Dụng / Dịch Vụ* (ví dụ: `Google`, `GitHub`, `Binance`...) và *Tên Người Dùng / Email* (ví dụ: `security_admin@gmail.com`).
-   - **Bước 2 (Tạo Key):** Bấm nút **"Tạo Ngẫu Nhiên (CSPRNG)"** để phần mềm tự động tính toán và sinh mật khẩu 20 ký tự đạt mức *Cực Mạnh (Unbreakable)*, hoặc tự nhập mật khẩu riêng của bạn.
+   - **Bước 2 (Tạo Key):** Chọn nguồn mật khẩu bằng 2 nút option ngay trên ô nhập:
+     - **Máy tạo (CSPRNG):** bấm **"Tạo Ngẫu Nhiên"** hoặc kéo thanh trượt 10–64 — mật khẩu sinh ra đúng số ký tự đang chọn.
+     - **Tôi tự nhập:** gõ mật khẩu bạn đang dùng (có nút hiện/ẩn và copy).
+     Chỉ nguồn đang chọn được lưu; nguồn còn lại bị mờ và khóa, không nhập/tạo được.
    - Bấm **"Lưu Vào Database"** để hoàn tất bản ghi đầu tiên!
 
 4. **Sao chép an toàn với Auto-Purge Clipboard:**
@@ -157,9 +160,9 @@ PasswordAdmin/
 │   └── Open_PasswordAdmin_Web.bat # 1-click: chạy server rồi mở Web UI (lưu ý: fix dấu `"` thừa ở cuối dòng start)
 ├── index.html                   # Biến thể Web UI dùng File System Access API (showSaveFilePicker, Chrome/Edge)
 ├── Open_PasswordAdmin_Web.bat   # 1-click mở bản Web UI chính + server (hiện đã đổi target sang PasswordAdmin WebUI/)
-├── crypto_bridge.py / .exe                # Bridge HTTP: đọc/ghi vault + sinh mật khẩu (luôn trả 20 ký tự)
+├── crypto_bridge.py / .exe                # Bridge HTTP: đọc/ghi vault + sinh mật khẩu (tôn trọng `?length=`, 8–64)
 ├── LICENSE                      # Giấy phép MIT License
-└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.2.0)
+└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.3.0)
 ```
 
 ---
@@ -190,7 +193,8 @@ PasswordAdmin/
 |:---|:---|:---|:---|
 | **v2.0.0** | **Web UI** | 📦 Trước đây | Web UI nền trắng chữ đen với đầy đủ UI Components, chuẩn hóa luồng nhập App/User trước khi tạo Key, thanh tìm kiếm kép, đếm ngược 10s Auto-Purge Clipboard. |
 | **v2.1.0** | **Web UI + Bridge** | 📦 Trước đây | Thêm **Đổi Master Password**, loopback server `127.0.0.1:8765` cho đọc/ghi vault + sinh mật khẩu native, fix copy mật khẩu chứa ký tự đặc biệt, làm rõ đặc tả mã hóa AES-256-GCM/PBKDF2-600k. |
-| **v2.2.0** | **Web UI + Recovery** | 🚀 **Hiện tại (Current)** | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục bằng gõ tay hoặc nạp file `.txt`, **tự xuất file khi kích hoạt**), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két, **không có chức năng xóa két**, **nút Help** hướng dẫn trong dashboard. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
+| **v2.2.0** | **Web UI + Recovery** | 📦 Trước đây | Vault **v2 envelope** (DEK + bọc kép password/recovery), **Recovery Key 24 từ BIP39** (tạo/xoay/khôi phục bằng gõ tay hoặc nạp file `.txt`, **tự xuất file khi kích hoạt**), **rate-limit 5 lần/60s + nhật ký bảo mật**, tự migrate v1→v2 khi mở két, **không có chức năng xóa két**, **nút Help** hướng dẫn trong dashboard. (Dự kiến sau: mở khóa Windows Hello, recovery delay có hủy.) |
+| **v2.3.0** | **Web UI + Bridge** | 🚀 **Hiện tại (Current)** | **Chọn nguồn mật khẩu**: nút option *Máy tạo (CSPRNG)* / *Tôi tự nhập* — chỉ nguồn đang chọn được lưu, nguồn còn lại bị khóa và mờ; ô tự nhập có hiện/ẩn + copy. **Bridge tôn trọng `?length=` (8–64)**, mặc định lấy từ dòng lệnh, bind đúng cổng `--server <port> <len>`; UI bỏ qua phản hồi sai độ dài/race khi kéo thanh trượt nên mật khẩu luôn khớp thanh trượt. |
 
 ---
 

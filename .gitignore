@@ -4,3 +4,9 @@
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Local runtime data (encrypted vault chứa dữ liệu người dùng)
+PasswordAdmin WebUI/PasswordVault.vault.json
+
+# Local backups
+PasswordAdmin WebUI/backup/

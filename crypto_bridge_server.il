@@ -816,12 +816,16 @@
   .method public hidebysig static int32 TkvHttpServerGenerate(int32 port, int32 length) cil managed
   {
     .maxstack 12
-    .locals init (class [System]System.Net.HttpListener listener, class [System]System.Net.HttpListenerContext context, class [System]System.Net.HttpListenerResponse response, class [mscorlib]System.Security.Cryptography.RNGCryptoServiceProvider random, class [mscorlib]System.Text.StringBuilder builder, class [mscorlib]System.IO.StreamWriter writer, int32 index, string password, string body, uint8[] random_bytes, string path, string request_body, class [mscorlib]System.IO.StreamReader reader)
+    .locals init (class [System]System.Net.HttpListener listener, class [System]System.Net.HttpListenerContext context, class [System]System.Net.HttpListenerResponse response, class [mscorlib]System.Security.Cryptography.RNGCryptoServiceProvider random, class [mscorlib]System.Text.StringBuilder builder, class [mscorlib]System.IO.StreamWriter writer, int32 index, string password, string body, uint8[] random_bytes, string path, string request_body, class [mscorlib]System.IO.StreamReader reader, string query, string length_text, int32 query_index, int32 amp_index, int32 requested_length, int32 effective_length)
     newobj instance void [System]System.Net.HttpListener::.ctor()
     stloc.0
     ldloc.0
     callvirt instance class [System]System.Net.HttpListenerPrefixCollection [System]System.Net.HttpListener::get_Prefixes()
-    ldstr "http://127.0.0.1:8765/"
+    ldstr "http://127.0.0.1:"
+    ldarga.s 0
+    call instance string [mscorlib]System.Int32::ToString()
+    ldstr "/"
+    call string [mscorlib]System.String::Concat(string, string, string)
     callvirt instance void [System]System.Net.HttpListenerPrefixCollection::Add(string)
     ldloc.0
     callvirt instance void [System]System.Net.HttpListener::Start()
@@ -842,6 +846,55 @@
     callvirt instance class [System]System.Uri [System]System.Net.HttpListenerRequest::get_Url()
     callvirt instance string [System]System.Uri::get_AbsolutePath()
     stloc.s path
+    ldarg.1
+    stloc.s 18
+    // --- Cho phep ghi de do dai bang query ?length=N (8..64) ---
+    ldloc.1
+    callvirt instance class [System]System.Net.HttpListenerRequest [System]System.Net.HttpListenerContext::get_Request()
+    callvirt instance class [System]System.Uri [System]System.Net.HttpListenerRequest::get_Url()
+    callvirt instance string [System]System.Uri::get_Query()
+    stloc.s 13
+    ldloc.s 13
+    brfalse.s length_override_done
+    ldloc.s 13
+    ldstr "length="
+    callvirt instance int32 [mscorlib]System.String::IndexOf(string)
+    stloc.s 15
+    ldloc.s 15
+    ldc.i4.m1
+    beq.s length_override_done
+    ldloc.s 13
+    ldloc.s 15
+    ldc.i4.7
+    add
+    callvirt instance string [mscorlib]System.String::Substring(int32)
+    stloc.s 14
+    ldloc.s 14
+    ldc.i4.s 38
+    callvirt instance int32 [mscorlib]System.String::IndexOf(char)
+    stloc.s 16
+    ldloc.s 16
+    ldc.i4.m1
+    beq.s length_override_parse
+    ldloc.s 14
+    ldc.i4.0
+    ldloc.s 16
+    callvirt instance string [mscorlib]System.String::Substring(int32, int32)
+    stloc.s 14
+  length_override_parse:
+    ldloc.s 14
+    ldloca.s 17
+    call bool [mscorlib]System.Int32::TryParse(string, int32&)
+    brfalse.s length_override_done
+    ldloc.s 17
+    ldc.i4.8
+    blt.s length_override_done
+    ldloc.s 17
+    ldc.i4.s 64
+    bgt.s length_override_done
+    ldloc.s 17
+    stloc.s 18
+  length_override_done:
     ldloc.s path
     ldstr "/health"
     call bool [mscorlib]System.String::op_Equality(string, string)
@@ -861,7 +914,7 @@
     stloc.s index
   password_loop:
     ldloc.s index
-    ldarg.1
+    ldloc.s 18
     bge password_done
     ldloc.s builder
     ldstr "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*()-_=+[]{}<>?"

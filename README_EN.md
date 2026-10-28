@@ -117,10 +117,10 @@ Get the official pre-built package from GitHub:
    - Double-click **`Open_PasswordAdmin_Web.bat`**. It does 2 things: starts `crypto_bridge_server.exe --server 8765 20` (port 8765, default length 20 when a request has no `length`), then opens `PasswordAdmin WebUI/index.html`.
    - ⚠️ Do not double-click `index.html` directly via `file://` — the Web UI needs the loopback server `127.0.0.1:8765` to read/write the vault and generate passwords; opening it bare reports "Cannot read DB" / "Crypto server not running". Keep the server window open. Use the latest Google Chrome or Microsoft Edge.
 
-2. **First login — the bundled demo vault uses `123456`:**
-   - The release **ships a demo vault** at `PasswordAdmin WebUI/demo/PasswordVault.vault.json` (3 placeholder records only). On the first run, `Open_PasswordAdmin_Web.bat` copies it to `PasswordAdmin WebUI/PasswordVault.vault.json` if that file does not exist yet.
-   - In the **Password Vault** dialog, type `123456` into the *Master Password* box, then press **"Mở Khóa Cơ Sở Dữ Liệu" (Unlock Database)**. The demo vault already contains 3 sample records so you can explore the UI — delete them freely.
-   - If **no vault file exists** (you deleted it, or you downloaded a source-only copy), the app treats the DB as empty: the password you enter on that first unlock **becomes the Master Password** of the new vault (fresh 16-byte salt + DEK, file `PasswordVault.vault.json` created automatically). If you already have a vault, enter that vault's password; legacy v1 vaults auto-upgrade to v2.
+2. **First login — password `123456`:**
+   - The release **ships a real vault** at `PasswordAdmin WebUI/PasswordVault.vault.json` (v2 format, AES-256-GCM) so you can open it right away. **Its content is only 3 sample records — not real data**, included so you can explore the UI; delete them and add your own accounts (a blue banner in the app says the same).
+   - In the **Password Vault** dialog, type `123456` into the *Master Password* box, then press **"Mở Khóa Cơ Sở Dữ Liệu" (Unlock Database)**.
+   - If **no vault file exists** (you deleted it, or you downloaded a source-only copy), the app treats the DB as empty: the password you enter on that first unlock **becomes the Master Password** of the new vault (fresh 16-byte salt + DEK, file `PasswordVault.vault.json` created automatically). If you already have another vault, enter that vault's password; legacy v1 vaults auto-upgrade to v2.
    - 💡 *Important:* Because the system encrypts client-side, the Master Password is used to **derive the DEK-wrapping key via PBKDF2-HMAC-SHA256 600,000 iterations with a 16-byte salt** (never stored anywhere). **Change `123456` immediately** (step 5), then **create a Recovery Key** (step 6) — a yellow banner in the app reminds you until done! Lost? Press `?` on the header for a quick guide popup.
 
 3. **Create your first account & password:**
@@ -156,9 +156,8 @@ PasswordAdmin/
 ├── PasswordAdmin WebUI/         # Main entry-point
 │   ├── index.html               # Web UI (reads/writes the vault via loopback server 127.0.0.1:8765)
 │   ├── crypto_bridge_server.exe # Local loopback server (vault + password generation, honors ?length 8–64)
-│   ├── demo/PasswordVault.vault.json # Demo vault (3 placeholder records, password `123456`) for a quick try
-│   └── PasswordVault.vault.json # Real DB, AES-256-GCM; copied from demo or auto-created (never committed)
-├── Open_PasswordAdmin_Web.bat   # Single entry-point: copies the demo vault (if missing), starts the server, opens the UI
+│   └── PasswordVault.vault.json # Real AES-256-GCM vault shipped with the release; contents are samples only (never committed)
+├── Open_PasswordAdmin_Web.bat   # Single entry-point: starts the server in PasswordAdmin WebUI/ then opens the UI
 ├── crypto_bridge_server.il      # IL source of the loopback server (rebuild with ilasm)
 ├── LICENSE                      # MIT License
 ├── README.md                    # Vietnamese docs (v2.3.0)

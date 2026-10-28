@@ -253,6 +253,18 @@
         <button onclick="openRecoverySetupModal()" data-i18n="banner_btn" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all">Tạo Recovery Key</button>
       </div>
 
+      <!-- Sample Content Notice (chỉ hiện khi vault còn bản ghi minh họa) -->
+      <div id="sample-notice" class="hidden p-4 rounded-2xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-start gap-2.5">
+          <i data-lucide="info" class="w-5 h-5 text-blue-600 shrink-0 mt-0.5"></i>
+          <p class="text-xs text-blue-900 leading-relaxed" data-i18n-html="sample_html">
+            <span class="font-bold">3 bản ghi đầu tiên chỉ là nội dung minh họa, không phải dữ liệu thật.</span>
+            Chúng có sẵn để bạn xem giao diện — cứ xóa và thay bằng tài khoản của bạn.
+          </p>
+        </div>
+        <button onclick="dismissSampleNotice()" data-i18n="sample_btn" class="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all">Đã hiểu, xóa được</button>
+      </div>
+
       <!-- Metrics Stat Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Stat 1 -->
@@ -892,7 +904,7 @@
       <div class="space-y-3.5 text-xs text-slate-600 leading-relaxed">
         <div data-i18n-html="help_b1">
           <p class="font-bold text-slate-900 mb-1">1. Đăng nhập lần đầu & đổi mật khẩu</p>
-          <p>Vault demo đi kèm có mật khẩu <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Mở được rồi thì bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16). Nếu chưa có file vault, mật khẩu bạn nhập lần đầu sẽ trở thành Master Password của vault mới.</p>
+          <p>Vault đi kèm có mật khẩu <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code> và chỉ chứa 3 bản ghi minh họa (không phải dữ liệu thật, xóa được). Mở được rồi thì bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16). Nếu chưa có file vault, mật khẩu bạn nhập lần đầu sẽ trở thành Master Password của vault mới.</p>
         </div>
         <div data-i18n-html="help_b2">
           <p class="font-bold text-slate-900 mb-1">2. Tạo Key mới (đúng quy trình 2 bước)</p>
@@ -968,6 +980,8 @@
         hdr_lang_title: 'Chuyển ngôn ngữ / Switch language',
         banner_html: '<span class="font-bold">Két chưa có Recovery Key.</span> Nếu quên Master Password lúc này, dữ liệu sẽ mất vĩnh viễn. Hãy tạo Recovery Key ngay.',
         banner_btn: 'Tạo Recovery Key',
+        sample_html: '<span class="font-bold">3 bản ghi đầu tiên chỉ là nội dung minh họa, không phải dữ liệu thật.</span> Chúng có sẵn để bạn xem giao diện — cứ xóa và thay bằng tài khoản của bạn.',
+        sample_btn: 'Đã hiểu, xóa được',
         stat_total: 'Tổng Tài Khoản / Key',
         stat_strong: 'Mật Khẩu Cực Mạnh',
         stat_weak: 'Cần Nâng Cấp (Yếu)',
@@ -1073,7 +1087,7 @@
         rec_finish: 'Đặt mật khẩu mới & Mở két',
         help_title: 'Hướng dẫn sử dụng',
         help_sub: 'PasswordAdmin — két mật khẩu cục bộ (mã hóa phía máy khách)',
-        help_b1: '<p class="font-bold text-slate-900 mb-1">1. Đăng nhập lần đầu & đổi mật khẩu</p><p>Vault demo đi kèm có mật khẩu <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Mở được rồi thì bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16). Nếu chưa có file vault, mật khẩu bạn nhập lần đầu sẽ thành Master Password của vault mới.</p>',
+        help_b1: '<p class="font-bold text-slate-900 mb-1">1. Đăng nhập lần đầu & đổi mật khẩu</p><p>Vault đi kèm có mật khẩu <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code> và chỉ chứa 3 bản ghi minh họa (không phải dữ liệu thật, xóa được). Mở được rồi thì bấm ngay nút <span class="font-semibold">chìa khóa 🔑</span> trên header để đổi sang mật khẩu riêng (tối thiểu 8 ký tự, nên 12–16). Nếu chưa có file vault, mật khẩu bạn nhập lần đầu sẽ thành Master Password của vault mới.</p>',
         help_b2: '<p class="font-bold text-slate-900 mb-1">2. Tạo Key mới (đúng quy trình 2 bước)</p><p>Bấm <span class="font-semibold">Tạo Key Mới</span> → <span class="font-semibold">Bước 1:</span> nhập Tên App + Tên User (bắt buộc) → <span class="font-semibold">Bước 2:</span> bấm "Tạo Ngẫu Nhiên" hoặc tự nhập mật khẩu (kéo thanh trượt 10–64 ký tự, bật/tắt ký tự đặc biệt) → Lưu.</p>',
         help_b3: '<p class="font-bold text-slate-900 mb-1">3. Tìm kiếm, xem, sao chép</p><p>Tìm độc lập/kết hợp theo Tên App + Tên User. Bấm <span class="font-semibold">con mắt</span> để hiện/ẩn mật khẩu, bấm <span class="font-semibold">Copy</span> để sao chép — clipboard <span class="font-semibold">tự xóa sau 10 giây</span>. Bút chì = sửa, thùng rác = xóa bản ghi.</p>',
         help_b4: '<p class="font-bold text-slate-900 mb-1">4. Recovery Key — chìa dự phòng khi quên mật khẩu</p><p>Bấm nút <span class="font-semibold">phao 🛟</span> → Tạo Recovery Key (24 từ, hiện đúng 1 lần: ghi giấy + file <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> tự tải về). Quên mật khẩu thì ở màn hình khóa bấm <span class="font-semibold">"Quên mật khẩu?"</span> → gõ 24 từ hoặc <span class="font-semibold">nạp file .txt</span> → đặt mật khẩu mới, dữ liệu nguyên vẹn.</p>',
@@ -1214,6 +1228,8 @@
         hdr_lang_title: 'Switch language / Chuyển ngôn ngữ',
         banner_html: '<span class="font-bold">Vault has no Recovery Key yet.</span> If you forget the Master Password now, data will be lost forever. Create a Recovery Key right away.',
         banner_btn: 'Create Recovery Key',
+        sample_html: '<span class="font-bold">The first 3 records are sample content, not real data.</span> They are included so you can explore the UI — delete them and add your own accounts.',
+        sample_btn: 'Got it, safe to delete',
         stat_total: 'Total Accounts / Keys',
         stat_strong: 'Very Strong Passwords',
         stat_weak: 'Needs Upgrade (Weak)',
@@ -1319,7 +1335,7 @@
         rec_finish: 'Set new password & Unlock',
         help_title: 'User Guide',
         help_sub: 'PasswordAdmin — local vault (client-side encryption)',
-        help_b1: '<p class="font-bold text-slate-900 mb-1">1. First login & change the password</p><p>The bundled demo vault uses <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code>. Once inside, press the <span class="font-semibold">key button 🔑</span> on the header to set your own password (min 8 characters, 12–16 recommended). If no vault file exists, the password you enter on first unlock becomes the new vault\'s Master Password.</p>',
+        help_b1: '<p class="font-bold text-slate-900 mb-1">1. First login & change the password</p><p>The bundled vault uses <code class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900">123456</code> and holds only 3 sample records (not real data — safe to delete). Once inside, press the <span class="font-semibold">key button 🔑</span> on the header to set your own password (min 8 characters, 12–16 recommended). If no vault file exists, the password you enter on first unlock becomes the new vault\'s Master Password.</p>',
         help_b2: '<p class="font-bold text-slate-900 mb-1">2. Create a Key (proper 2-step flow)</p><p>Press <span class="font-semibold">New Key</span> → <span class="font-semibold">Step 1:</span> enter App + Username (required) → <span class="font-semibold">Step 2:</span> press "Random Generate" or type your own password (10–64 slider, toggle special chars) → Save.</p>',
         help_b3: '<p class="font-bold text-slate-900 mb-1">3. Search, view, copy</p><p>Search by App and/or Username. Press the <span class="font-semibold">eye</span> to show/hide a password, <span class="font-semibold">Copy</span> to copy it — the clipboard <span class="font-semibold">self-clears after 10 seconds</span>. Pencil = edit, trash = delete record.</p>',
         help_b4: '<p class="font-bold text-slate-900 mb-1">4. Recovery Key — spare key for a forgotten password</p><p>Press the <span class="font-semibold">life-buoy button 🛟</span> → Create Recovery Key (24 words, shown exactly once: write on paper + auto-downloaded <code class="px-1 font-mono bg-slate-100 border border-slate-200 rounded">.txt</code> file). Forgot your password? On the lock screen press <span class="font-semibold">"Forgot password?"</span> → type the 24 words or <span class="font-semibold">load the .txt file</span> → set a new password, data intact.</p>',
@@ -1751,6 +1767,7 @@
       document.getElementById('lock-modal').classList.add('hidden');
       document.getElementById('app-container').classList.remove('hidden');
       lucide.createIcons();
+      updateSampleNotice();
     }
 
     function lockVault() {
@@ -1771,6 +1788,7 @@
       pendingRecoveryWrapRec = null;
       currentMasterPassword = null;
       focusMasterPassword();
+      updateSampleNotice();
       showToast(t('locked_title'), t('locked_msg'), 'neutral');
     }
 
@@ -1780,6 +1798,25 @@
       const show = isUnlocked && vaultDEK && !vaultWrapRec;
       banner.classList.toggle('hidden', !show);
       if (show) lucide.createIcons();
+    }
+
+    // Cảnh báo nội dung minh họa: chỉ hiện khi vault còn bản ghi mẫu
+    const SAMPLE_NOTICE_KEY = 'PA_SAMPLE_NOTICE_DISMISSED';
+
+    function updateSampleNotice() {
+      const el = document.getElementById('sample-notice');
+      if (!el) return;
+      const hasSample = Array.isArray(credentials)
+        && credentials.some(r => String((r && r.id) || '').startsWith('demo-'));
+      const dismissed = localStorage.getItem(SAMPLE_NOTICE_KEY) === '1';
+      const show = isUnlocked && hasSample && !dismissed;
+      el.classList.toggle('hidden', !show);
+      if (show) lucide.createIcons();
+    }
+
+    function dismissSampleNotice() {
+      localStorage.setItem(SAMPLE_NOTICE_KEY, '1');
+      updateSampleNotice();
     }
 
     // Data Load & Save
@@ -1878,6 +1915,7 @@
       const tbody = document.getElementById('credential-table-body');
       const emptyState = document.getElementById('empty-state');
       tbody.innerHTML = '';
+      updateSampleNotice();
 
       if (data.length === 0) {
         emptyState.classList.remove('hidden');

@@ -117,11 +117,11 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Nhấp đúp chuột vào tệp **`Open_PasswordAdmin_Web.bat`**. File này làm 2 việc: khởi động `crypto_bridge_server.exe --server 8765 20` (cổng 8765, độ dài mặc định 20 khi request không truyền `length`) rồi mở `PasswordAdmin WebUI/index.html`.
    - ⚠️ Không nhấp đúp trực tiếp `index.html` qua `file://` vì Web UI cần loopback server `127.0.0.1:8765` để đọc/ghi vault và sinh mật khẩu — mở chay sẽ báo "Không thể đọc DB" / "Crypto server chưa chạy". Giữ cửa sổ server luôn mở. Dùng Google Chrome hoặc Microsoft Edge mới nhất.
 
-2. **Đăng nhập lần đầu — bạn tự đặt Master Password:**
-   - Bản phát hành **không kèm file vault**. Ở lần mở đầu tiên app coi DB là trống: nhập mật khẩu bạn muốn dùng (tối thiểu 8 ký tự, khuyến nghị 12–16) vào ô *Master Password* rồi bấm **"Mở Khóa Cơ Sở Dữ Liệu"**.
-   - Mật khẩu đó trở thành Master Password của két; app sinh salt 16 bytes + DEK mới và **tự tạo file** `PasswordAdmin WebUI/PasswordVault.vault.json` (định dạng v2, AES-256-GCM) kèm 3 bản ghi demo (mật khẩu demo chỉ là giả định, xóa thoải mái).
-   - Nếu file vault đã có sẵn (copy từ máy khác / bản backup), nhập đúng Master Password của file đó; vault v1 legacy tự nâng lên v2 khi mở.
-   - 💡 *Lưu ý quan trọng:* Vì hệ thống mã hóa phía máy khách (client-side), Master Password được dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **tạo Recovery Key** (bước 6) ngay — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
+2. **Đăng nhập lần đầu — vault demo có sẵn mật khẩu `123456`:**
+   - Bản phát hành **kèm sẵn vault demo** `PasswordAdmin WebUI/demo/PasswordVault.vault.json` (chỉ chứa 3 bản ghi giả định). Khi chạy `Open_PasswordAdmin_Web.bat` lần đầu, file này được copy thành `PasswordAdmin WebUI/PasswordVault.vault.json` nếu chưa có.
+   - Tại màn hình **Két Sắt Mật Khẩu (Vault)**, nhập `123456` vào ô *Master Password* rồi bấm **"Mở Khóa Cơ Sở Dữ Liệu"**. Vault demo đã có 3 bản ghi mẫu để bạn xem giao diện; xóa chúng thoải mái.
+   - Nếu file vault **không tồn tại** (bạn đã xóa, hoặc tải bản chỉ có source), app coi là DB trống: mật khẩu bạn nhập lần đầu sẽ **trở thành Master Password** của vault mới (sinh salt 16 bytes + DEK mới, tự tạo file `PasswordVault.vault.json`). Nếu đang có vault cũ, nhập đúng mật khẩu của vault đó (v1 legacy tự nâng lên v2).
+   - 💡 *Lưu ý quan trọng:* Hệ thống mã hóa phía máy khách (client-side); Master Password dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). **Đổi ngay `123456`** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
 
 3. **Tạo tài khoản & mật khẩu đầu tiên:**
    - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
@@ -137,8 +137,8 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Mật khẩu sẽ được sao chép vào bộ nhớ đệm và **tự động bị xóa vĩnh viễn khỏi Clipboard sau 10 giây** để bảo vệ an toàn.
 
 5. **Đổi Master Password ngay trong app:**
-   - Sau khi đã mở két, bấm biểu tượng **chìa khóa 🔑** trên thanh header (cạnh nút Khóa) để mở hộp thoại **"Đổi Master Password"**.
-   - Nhập *mật khẩu hiện tại* → nhập *mật khẩu mới* (tối thiểu 8 ký tự, khuyến nghị 12–16, có thước đo mạnh/yếu) → *xác nhận lại* → bấm **"Đổi Mật Khẩu"**.
+   - Sau khi đã mở két bằng `123456`, bấm biểu tượng **chìa khóa 🔑** trên thanh header (cạnh nút Khóa) để mở hộp thoại **"Đổi Master Password"**.
+   - Nhập *mật khẩu hiện tại* (`123456`) → nhập *mật khẩu mới* (tối thiểu 8 ký tự, khuyến nghị 12–16, có thước đo mạnh/yếu) → *xác nhận lại* → bấm **"Đổi Mật Khẩu"**.
    - App xác thực mật khẩu cũ bằng cách mở thử DEK, sau đó bọc lại DEK bằng mật khẩu mới (salt 16 bytes mới) và **ghi đè DB mặc định**. Recovery Key (nếu đã tạo) giữ nguyên hiệu lực. Từ lần sau dùng mật khẩu mới để đăng nhập.
 
 6. **Tạo Recovery Key + cách khôi phục khi quên mật khẩu:**
@@ -156,8 +156,9 @@ PasswordAdmin/
 ├── PasswordAdmin WebUI/         # Entry-point chính
 │   ├── index.html               # Web UI (đọc/ghi vault qua loopback server 127.0.0.1:8765)
 │   ├── crypto_bridge_server.exe # Loopback server cục bộ (vault + sinh mật khẩu, tôn trọng ?length 8–64)
-│   └── PasswordVault.vault.json # DB mã hóa AES-256-GCM, tự tạo khi chạy lần đầu (không commit lên repo)
-├── Open_PasswordAdmin_Web.bat   # Entry-point duy nhất: chạy server trong PasswordAdmin WebUI/ rồi mở UI
+│   ├── demo/PasswordVault.vault.json # Vault demo (3 bản ghi giả, mật khẩu `123456`) để thử ngay
+│   └── PasswordVault.vault.json # DB thật, mã hóa AES-256-GCM; tạo từ demo hoặc tự tạo khi chạy (không commit)
+├── Open_PasswordAdmin_Web.bat   # Entry-point duy nhất: copy vault demo (nếu chưa có), chạy server rồi mở UI
 ├── crypto_bridge_server.il      # Mã nguồn IL của loopback server (build lại bằng ilasm)
 ├── LICENSE                      # Giấy phép MIT License
 ├── README.md                    # Tài liệu tiếng Việt (v2.3.0)

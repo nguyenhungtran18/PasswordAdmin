@@ -117,11 +117,11 @@ Get the official pre-built package from GitHub:
    - Double-click **`Open_PasswordAdmin_Web.bat`**. It does 2 things: starts `crypto_bridge_server.exe --server 8765 20` (port 8765, default length 20 when a request has no `length`), then opens `PasswordAdmin WebUI/index.html`.
    - ⚠️ Do not double-click `index.html` directly via `file://` — the Web UI needs the loopback server `127.0.0.1:8765` to read/write the vault and generate passwords; opening it bare reports "Cannot read DB" / "Crypto server not running". Keep the server window open. Use the latest Google Chrome or Microsoft Edge.
 
-2. **First login — you choose the Master Password:**
-   - The release **ships without a vault file**. On the first launch the app treats the DB as empty: type the password you want (minimum 8 characters, 12–16 recommended) into the *Master Password* box, then press **"Mở Khóa Cơ Sở Dữ Liệu" (Unlock Database)**.
-   - That password becomes the vault's Master Password; the app generates a fresh 16-byte salt + DEK and **creates** `PasswordAdmin WebUI/PasswordVault.vault.json` (v2, AES-256-GCM) with 3 demo records (their passwords are placeholders — delete them freely).
-   - If a vault file already exists (copied from another machine / a backup), enter that file's Master Password; legacy v1 vaults auto-upgrade to v2 on unlock.
-   - 💡 *Important:* Because the system encrypts client-side, the Master Password is used to **derive the DEK-wrapping key via PBKDF2-HMAC-SHA256 600,000 iterations with a 16-byte salt** (never stored anywhere). **Create a Recovery Key** (step 6) right away — a yellow banner in the app reminds you until done! Lost? Press `?` on the header for a quick guide popup.
+2. **First login — the bundled demo vault uses `123456`:**
+   - The release **ships a demo vault** at `PasswordAdmin WebUI/demo/PasswordVault.vault.json` (3 placeholder records only). On the first run, `Open_PasswordAdmin_Web.bat` copies it to `PasswordAdmin WebUI/PasswordVault.vault.json` if that file does not exist yet.
+   - In the **Password Vault** dialog, type `123456` into the *Master Password* box, then press **"Mở Khóa Cơ Sở Dữ Liệu" (Unlock Database)**. The demo vault already contains 3 sample records so you can explore the UI — delete them freely.
+   - If **no vault file exists** (you deleted it, or you downloaded a source-only copy), the app treats the DB as empty: the password you enter on that first unlock **becomes the Master Password** of the new vault (fresh 16-byte salt + DEK, file `PasswordVault.vault.json` created automatically). If you already have a vault, enter that vault's password; legacy v1 vaults auto-upgrade to v2.
+   - 💡 *Important:* Because the system encrypts client-side, the Master Password is used to **derive the DEK-wrapping key via PBKDF2-HMAC-SHA256 600,000 iterations with a 16-byte salt** (never stored anywhere). **Change `123456` immediately** (step 5), then **create a Recovery Key** (step 6) — a yellow banner in the app reminds you until done! Lost? Press `?` on the header for a quick guide popup.
 
 3. **Create your first account & password:**
    - Press **"Tạo Key Mới" (Create New Key)** (blue button, top right).
@@ -137,8 +137,8 @@ Get the official pre-built package from GitHub:
    - The password is copied to the clipboard and **permanently erased after 10 seconds** for safety.
 
 5. **Change the Master Password in-app:**
-   - After unlocking the vault, press the **key icon 🔑** on the header bar (next to Lock) to open **"Đổi Master Password" (Change Master Password)**.
-   - Enter the *current password* → enter the *new password* (minimum 8 characters, 12–16 recommended, with a strength meter) → *confirm* → press **"Đổi Mật Khẩu" (Change Password)**.
+   - After unlocking the vault with `123456`, press the **key icon 🔑** on the header bar (next to Lock) to open **"Đổi Master Password" (Change Master Password)**.
+   - Enter the *current password* (`123456`) → enter the *new password* (minimum 8 characters, 12–16 recommended, with a strength meter) → *confirm* → press **"Đổi Mật Khẩu" (Change Password)**.
    - The app verifies the old password by trial-unwrapping the DEK, then re-wraps the DEK with the new password (new 16-byte salt) and **overwrites the default DB**. The Recovery Key (if created) stays valid. Use the new password from the next login on.
 
 6. **Create a Recovery Key + recover a forgotten password:**
@@ -156,8 +156,9 @@ PasswordAdmin/
 ├── PasswordAdmin WebUI/         # Main entry-point
 │   ├── index.html               # Web UI (reads/writes the vault via loopback server 127.0.0.1:8765)
 │   ├── crypto_bridge_server.exe # Local loopback server (vault + password generation, honors ?length 8–64)
-│   └── PasswordVault.vault.json # AES-256-GCM encrypted DB, created on first run (never committed)
-├── Open_PasswordAdmin_Web.bat   # Single entry-point: runs the server in PasswordAdmin WebUI/ then opens the UI
+│   ├── demo/PasswordVault.vault.json # Demo vault (3 placeholder records, password `123456`) for a quick try
+│   └── PasswordVault.vault.json # Real DB, AES-256-GCM; copied from demo or auto-created (never committed)
+├── Open_PasswordAdmin_Web.bat   # Single entry-point: copies the demo vault (if missing), starts the server, opens the UI
 ├── crypto_bridge_server.il      # IL source of the loopback server (rebuild with ilasm)
 ├── LICENSE                      # MIT License
 ├── README.md                    # Vietnamese docs (v2.3.0)

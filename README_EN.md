@@ -100,14 +100,14 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Download the Pre-built Package
 Get the official pre-built package from GitHub:
 
-📦 **Direct Download Link:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases)**
+📦 **Direct Download Link:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases/tag/v2.3.0)**
 
 ---
 
 ### 2. Extraction Guide
 1. After downloading `PasswordAdmin.zip`, right-click it and choose **Extract All...** (or use 7-Zip / WinRAR → **Extract to PasswordAdmin**).
 2. Pick a convenient folder on your computer (e.g. `D:\PasswordAdmin` or `C:\Tools\PasswordAdmin`).
-3. Open the extracted folder; you will see: `PasswordAdmin WebUI/index.html`, `Open_PasswordAdmin_Web.bat`, `crypto_bridge_server.exe`, `README.md`, etc. (the root `index.html` is a File System Access API variant, not the main entry-point).
+3. Open the extracted folder; you will see: `PasswordAdmin WebUI/` (with `index.html` + `crypto_bridge_server.exe`), the root `Open_PasswordAdmin_Web.bat` launcher, `README.md`, and `LICENSE`.
 
 ---
 
@@ -121,7 +121,7 @@ Get the official pre-built package from GitHub:
    - In the **Password Vault** dialog, type `123456` into the *Master Password* box.
    - Press **"Mở Khóa Cơ Sở Dữ Liệu" (Unlock Database)** to enter the main dashboard (the bundled DB already contains 3 demo records; legacy v1 vaults auto-upgrade to v2 on unlock).
    - 💡 *Important:* Because the system encrypts client-side, the Master Password is used to **derive the DEK-wrapping key via PBKDF2-HMAC-SHA256 600,000 iterations with a 16-byte salt** (never stored anywhere). **Change the default password immediately** (step 5), then **create a Recovery Key** (step 6) — a yellow banner in the app reminds you until done! Lost? Press `?` on the header for a quick guide popup.
-   - Empty-DB case (vault file deleted / root build): whatever password you enter on first unlock becomes the new vault's Master Password (fresh DEK, v2 format).
+   - Empty-DB case (vault file deleted): whatever password you enter on first unlock becomes the new vault's Master Password (fresh DEK, v2 format).
 
 3. **Create your first account & password:**
    - Press **"Tạo Key Mới" (Create New Key)** (blue button, top right).
@@ -153,16 +153,15 @@ Get the official pre-built package from GitHub:
 
 ```text
 PasswordAdmin/
-├── PasswordAdmin WebUI/         # Main entry-point: index.html + PasswordVault.vault.json + Open_PasswordAdmin_Web.bat
-│   ├── index.html               # Main Web UI (reads/writes vault via loopback server 127.0.0.1:8765)
-│   ├── PasswordVault.vault.json # Default Web UI DB (AES-256-GCM encrypted JSON)
-│   ├── crypto_bridge_server.exe # Local loopback server (vault + password generation)
-│   └── Open_PasswordAdmin_Web.bat # 1-click: runs the server then opens the Web UI (note: fix the extra `"` at the end of the start line)
-├── index.html                   # Web UI variant using the File System Access API (showSaveFilePicker, Chrome/Edge)
-├── Open_PasswordAdmin_Web.bat   # 1-click opener for the main Web UI + server (target already switched to PasswordAdmin WebUI/)
-├── crypto_bridge.py / .exe                # HTTP bridge: vault read/write + password generation (honors `?length=`, 8–64)
+├── PasswordAdmin WebUI/         # Main entry-point
+│   ├── index.html               # Web UI (reads/writes the vault via loopback server 127.0.0.1:8765)
+│   ├── crypto_bridge_server.exe # Local loopback server (vault + password generation, honors ?length 8–64)
+│   └── PasswordVault.vault.json # AES-256-GCM encrypted DB, created on first run (never committed)
+├── Open_PasswordAdmin_Web.bat   # Single entry-point: runs the server in PasswordAdmin WebUI/ then opens the UI
+├── crypto_bridge_server.il      # IL source of the loopback server (rebuild with ilasm)
 ├── LICENSE                      # MIT License
-└── README.md                    # Vietnamese usage docs & technical spec (v2.3.0)
+├── README.md                    # Vietnamese docs (v2.3.0)
+└── README_EN.md                 # English docs (v2.3.0)
 ```
 
 ---

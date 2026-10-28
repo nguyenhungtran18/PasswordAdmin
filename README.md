@@ -100,14 +100,14 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}
 ### 1. Tải Gói Cài Đặt Sẵn (Pre-built Release)
 Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
-📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases)**
+📦 **Link Tải Trực Tiếp:** 👉 **[PasswordAdmin V2.3.0](https://github.com/nguyenhungtran18/PasswordAdmin/releases/tag/v2.3.0)**
 
 ---
 
 ### 2. Hướng Dẫn Giải Nén
 1. Sau khi tải tệp `PasswordAdmin.zip`, nhấp chuột phải vào tệp và chọn **Extract All...** (hoặc sử dụng phần mềm 7-Zip / WinRAR chọn **Extract to PasswordAdmin**).
 2. Chọn thư mục lưu trữ thuận tiện trên máy tính (ví dụ: `D:\PasswordAdmin` hoặc `C:\Tools\PasswordAdmin`).
-3. Mở thư mục vừa giải nén, bạn sẽ thấy các tệp: `PasswordAdmin WebUI/index.html`, `Open_PasswordAdmin_Web.bat`, `crypto_bridge_server.exe`, `README.md`, v.v. (bản root `index.html` là biến thể dùng File System Access API, không phải entry-point chính).
+3. Mở thư mục vừa giải nén, bạn sẽ thấy: `PasswordAdmin WebUI/` (chứa `index.html` + `crypto_bridge_server.exe`), `Open_PasswordAdmin_Web.bat` ở thư mục gốc, `README.md`, `LICENSE`.
 
 ---
 
@@ -121,7 +121,7 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
    - Tại màn hình hộp thoại **Két Sắt Mật Khẩu (Vault)**, bạn nhập `123456` vào ô *Master Password*.
    - Bấm nút **"Mở Khóa Cơ Sở Dữ Liệu"** để vào giao diện quản trị chính (DB đi kèm đã có sẵn 3 bản ghi demo; vault v1 legacy tự nâng lên v2 khi mở).
    - 💡 *Lưu ý quan trọng:* Vì hệ thống mã hóa phía máy khách (client-side), Master Password được dùng để **suy khóa bọc DEK qua PBKDF2-HMAC-SHA256 600.000 iterations với salt 16 bytes** (không lưu mật khẩu ở bất kỳ đâu). Hãy **đổi ngay mật khẩu mặc định** (bước 5) rồi **tạo Recovery Key** (bước 6) — banner vàng trong app sẽ nhắc cho đến khi xong! Lạc đường thì bấm nút `?` trên header để mở popup hướng dẫn nhanh.
-   - Trường hợp DB trống (xóa file vault / chạy bản root): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới (sinh DEK mới, định dạng v2).
+   - Trường hợp DB trống (xóa file vault): mật khẩu bạn nhập ở lần mở đầu tiên sẽ trở thành Master Password của vault mới (sinh DEK mới, định dạng v2).
 
 3. **Tạo tài khoản & mật khẩu đầu tiên:**
    - Bấm nút **"Tạo Key Mới"** (màu xanh ở góc phải trên).
@@ -153,16 +153,15 @@ Tải phiên bản đóng gói sẵn chính thức từ GitHub Release:
 
 ```text
 PasswordAdmin/
-├── PasswordAdmin WebUI/         # Entry-point chính: index.html + PasswordVault.vault.json + Open_PasswordAdmin_Web.bat
-│   ├── index.html               # Web UI chính (đọc/ghi vault qua loopback server 127.0.0.1:8765)
-│   ├── PasswordVault.vault.json # DB mặc định của Web UI (JSON mã hóa AES-256-GCM)
-│   ├── crypto_bridge_server.exe # Loopback server cục bộ (vault + sinh mật khẩu)
-│   └── Open_PasswordAdmin_Web.bat # 1-click: chạy server rồi mở Web UI (lưu ý: fix dấu `"` thừa ở cuối dòng start)
-├── index.html                   # Biến thể Web UI dùng File System Access API (showSaveFilePicker, Chrome/Edge)
-├── Open_PasswordAdmin_Web.bat   # 1-click mở bản Web UI chính + server (hiện đã đổi target sang PasswordAdmin WebUI/)
-├── crypto_bridge.py / .exe                # Bridge HTTP: đọc/ghi vault + sinh mật khẩu (tôn trọng `?length=`, 8–64)
+├── PasswordAdmin WebUI/         # Entry-point chính
+│   ├── index.html               # Web UI (đọc/ghi vault qua loopback server 127.0.0.1:8765)
+│   ├── crypto_bridge_server.exe # Loopback server cục bộ (vault + sinh mật khẩu, tôn trọng ?length 8–64)
+│   └── PasswordVault.vault.json # DB mã hóa AES-256-GCM, tự tạo khi chạy lần đầu (không commit lên repo)
+├── Open_PasswordAdmin_Web.bat   # Entry-point duy nhất: chạy server trong PasswordAdmin WebUI/ rồi mở UI
+├── crypto_bridge_server.il      # Mã nguồn IL của loopback server (build lại bằng ilasm)
 ├── LICENSE                      # Giấy phép MIT License
-└── README.md                    # Tài liệu hướng dẫn sử dụng & đặc tả kỹ thuật (v2.3.0)
+├── README.md                    # Tài liệu tiếng Việt (v2.3.0)
+└── README_EN.md                 # Tài liệu tiếng Anh (v2.3.0)
 ```
 
 ---

@@ -1,12 +1,14 @@
 # Temporary & Intermediate build artifacts
-*.il
 *.log
 *.tmp
+*.exe.bak
 .DS_Store
 Thumbs.db
+__pycache__/
 
 # Local runtime data (encrypted vault chứa dữ liệu người dùng)
 PasswordAdmin WebUI/PasswordVault.vault.json
 
-# Local backups
+# Local backups & packaged artifacts
 PasswordAdmin WebUI/backup/
+PasswordAdmin*.zip
